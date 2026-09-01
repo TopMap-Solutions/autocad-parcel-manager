@@ -1,0 +1,523 @@
+﻿<Window
+    x:Class="_12_file_manager.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:local="clr-namespace:_12_file_manager"
+    mc:Ignorable="d"
+    Title="Land Parcel Manager"
+    Height="600"
+    Width="900"
+    MinHeight="500"
+    MinWidth="750"
+    WindowStartupLocation="CenterScreen">
+
+    <Grid Background="#F5F6F8">
+
+        <Grid.RowDefinitions>
+            <RowDefinition Height="60" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+
+        <!-- ========================================================= -->
+        <!-- TOP BAR -->
+        <!-- ========================================================= -->
+
+        <Border
+            Grid.Row="0"
+            Background="White"
+            BorderBrush="#E2E4E8"
+            BorderThickness="0,0,0,1">
+
+            <Grid Margin="16,0,26,0">
+
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+
+                <!-- APP NAME -->
+
+                <StackPanel
+                    VerticalAlignment="Center"
+                    Grid.ColumnSpan="2"
+                    Height="39"
+                    Margin="10,0,75,0">
+
+                    <TextBlock
+                        Text="Land Parcel Manager"
+                        FontSize="18"
+                        FontWeight="SemiBold"
+                        Foreground="#222222" />
+
+                    <TextBlock
+                        Text="Powered by TopMap Solutions"
+                        FontSize="10"
+                        Foreground="#777777" />
+
+                </StackPanel>
+
+
+                <!-- USER -->
+
+                <StackPanel
+                    Grid.Column="1"
+                    VerticalAlignment="Center"
+                    Margin="0,0,20,0">
+
+                    <TextBlock
+                        Text="Joshua"
+                        FontWeight="SemiBold"
+                        FontSize="13" />
+
+                    <TextBlock
+                        Text="Collaborator"
+                        FontSize="10"
+                        Foreground="#777777" />
+
+                </StackPanel>
+
+
+                <!-- LOGOUT -->
+
+                <Button
+                    Grid.Column="2"
+                    Content="Logout"
+                    Width="70"
+                    Height="30"
+                    VerticalAlignment="Center"
+                    Background="White"
+                    BorderBrush="#D5D7DB"
+                    BorderThickness="1"
+                    Click="Logout_Click"
+                    Cursor="Hand" />
+
+            </Grid>
+
+        </Border>
+
+
+        <!-- ========================================================= -->
+        <!-- MAIN CONTENT -->
+        <!-- ========================================================= -->
+
+        <Grid
+            Grid.Row="1"
+            Margin="25">
+
+            <Grid.RowDefinitions>
+
+                <!-- PROJECT ROOT -->
+                <RowDefinition Height="Auto" />
+
+                <!-- SPACING -->
+                <RowDefinition Height="20" />
+
+                <!-- BARANGAY DRAWINGS -->
+                <RowDefinition Height="*" />
+
+            </Grid.RowDefinitions>
+
+
+            <!-- ===================================================== -->
+            <!-- PROJECT ROOT -->
+            <!-- ===================================================== -->
+
+            <Border
+                Grid.Row="0"
+                Background="White"
+                Padding="20"
+                BorderBrush="#E2E4E8"
+                BorderThickness="1">
+
+                <Grid>
+
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+
+                    <!-- ROOT INFORMATION -->
+
+                    <StackPanel>
+
+                        <TextBlock
+                            Text="Project Root Folder"
+                            FontSize="14"
+                            FontWeight="SemiBold"
+                            Margin="0,0,0,5" />
+
+                        <Border
+                            Height="36"
+                            Background="#F7F7F8"
+                            BorderBrush="#D9DBDF"
+                            BorderThickness="1">
+
+                            <TextBox
+                                x:Name="RootFolderTextBox"
+                                Text="No folder selected"
+                                IsReadOnly="True"
+                                BorderThickness="0"
+                                Background="Transparent"
+                                Padding="10,8"
+                                Foreground="#555555" />
+
+                        </Border>
+
+                    </StackPanel>
+
+
+                    <!-- BROWSE -->
+
+                    <Button
+                        Grid.Column="1"
+                        Content="Browse"
+                        Width="90"
+                        Height="37"
+                        Margin="15,23,0,0"
+                        VerticalAlignment="Top"
+                        Click="BrowseRoot_Click"
+                        Cursor="Hand" />
+
+                </Grid>
+
+            </Border>
+
+
+            <!-- ===================================================== -->
+            <!-- BARANGAY DRAWINGS -->
+            <!-- ===================================================== -->
+
+            <Border
+                Grid.Row="2"
+                Background="White"
+                BorderBrush="#E2E4E8"
+                BorderThickness="1">
+
+                <Grid Margin="20">
+
+                    <Grid.RowDefinitions>
+
+                        <!-- TITLE + ACTIONS -->
+                        <RowDefinition Height="Auto" />
+
+                        <!-- TABLE HEADER -->
+                        <RowDefinition Height="Auto" />
+
+                        <!-- LIST -->
+                        <RowDefinition Height="*" />
+
+                    </Grid.RowDefinitions>
+
+
+                    <!-- ================================================= -->
+                    <!-- TITLE + ACTION BUTTONS -->
+                    <!-- ================================================= -->
+
+                    <Grid
+                        Grid.Row="0"
+                        Margin="0,0,0,15">
+
+                        <Grid.ColumnDefinitions>
+
+                            <!-- TITLE -->
+                            <ColumnDefinition Width="*" />
+
+                            <!-- VIEW MASTER -->
+                            <ColumnDefinition Width="Auto" />
+
+                            <!-- SYNC -->
+                            <ColumnDefinition Width="Auto" />
+
+                        </Grid.ColumnDefinitions>
+
+
+                        <!-- TITLE -->
+
+                        <StackPanel
+                            Grid.Column="0">
+
+                            <TextBlock
+                                Text="Barangay Drawings"
+                                FontSize="15"
+                                FontWeight="SemiBold"
+                                Foreground="#222222" />
+
+                            <TextBlock
+                                Text="DWG files found in the project root"
+                                FontSize="11"
+                                Foreground="#777777"
+                                Margin="0,3,0,0" />
+
+                        </StackPanel>
+
+
+                        <!-- ================================================= -->
+                        <!-- VIEW MASTER -->
+                        <!-- ================================================= -->
+
+                        <Button
+                            Grid.Column="1"
+                            Width="155"
+                            Height="36"
+                            Margin="0,0,10,0"
+                            Background="White"
+                            Foreground="#333333"
+                            BorderBrush="#D5D7DB"
+                            BorderThickness="1"
+                            FontWeight="SemiBold"
+                            Click="ViewMaster_Click"
+                            Cursor="Hand">
+
+                            <TextBlock
+                                Text="View Master Drawing"
+                                VerticalAlignment="Center"
+                                HorizontalAlignment="Center" />
+
+                        </Button>
+
+
+                        <!-- ================================================= -->
+                        <!-- SYNC -->
+                        <!-- ================================================= -->
+
+                        <Button
+                            Grid.Column="2"
+                            Width="100"
+                            Height="36"
+                            Background="#2563EB"
+                            Foreground="White"
+                            BorderThickness="0"
+                            FontWeight="SemiBold"
+                            Click="Sync_Click"
+                            Cursor="Hand">
+
+                            <TextBlock
+                                Text="Sync"
+                                VerticalAlignment="Center"
+                                HorizontalAlignment="Center" />
+
+                        </Button>
+
+                    </Grid>
+
+
+                    <!-- ================================================= -->
+                    <!-- TABLE HEADER -->
+                    <!-- ================================================= -->
+
+                    <Border
+                        Grid.Row="1"
+                        Background="#F8F9FA"
+                        BorderBrush="#E2E4E8"
+                        BorderThickness="0,0,0,1"
+                        Padding="12,8">
+
+                        <Grid>
+
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="2*" />
+                                <ColumnDefinition Width="2*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+
+                            <!-- BARANGAY -->
+
+                            <TextBlock
+                                Text="BARANGAY"
+                                FontSize="10"
+                                FontWeight="SemiBold"
+                                Foreground="#888888" />
+
+
+                            <!-- MIDDLE COLUMN INTENTIONALLY EMPTY -->
+
+                            <TextBlock
+                                Grid.Column="1" />
+
+
+                            <!-- STATUS -->
+
+                            <TextBlock
+                                Grid.Column="2"
+                                Text="STATUS"
+                                FontSize="10"
+                                FontWeight="SemiBold"
+                                Foreground="#888888"
+                                Margin="10,0,0,0" />
+
+                        </Grid>
+
+                    </Border>
+
+
+                    <!-- ================================================= -->
+                    <!-- BARANGAY LIST -->
+                    <!-- ================================================= -->
+
+                    <ListBox
+                        x:Name="BarangayList"
+                        Grid.Row="2"
+                        BorderThickness="0"
+                        Background="Transparent"
+                        ScrollViewer.VerticalScrollBarVisibility="Auto"
+                        MouseDoubleClick="BarangayList_MouseDoubleClick">
+
+
+                        <!-- ================================================= -->
+                        <!-- ITEM STYLE -->
+                        <!-- ================================================= -->
+
+                        <ListBox.ItemContainerStyle>
+
+                            <Style
+                                TargetType="ListBoxItem">
+
+                                <Setter
+                                    Property="Padding"
+                                    Value="0" />
+
+                                <Setter
+                                    Property="Margin"
+                                    Value="0" />
+
+                                <Setter
+                                    Property="HorizontalContentAlignment"
+                                    Value="Stretch" />
+
+                                <Setter
+                                    Property="Background"
+                                    Value="Transparent" />
+
+                                <Setter
+                                    Property="BorderThickness"
+                                    Value="0" />
+
+                                <Setter
+                                    Property="Cursor"
+                                    Value="Hand" />
+
+
+                                <Style.Triggers>
+
+                                    <!-- HOVER -->
+
+                                    <Trigger
+                                        Property="IsMouseOver"
+                                        Value="True">
+
+                                        <Setter
+                                            Property="Background"
+                                            Value="#F5F7FA" />
+
+                                    </Trigger>
+
+
+                                    <!-- SELECTED -->
+
+                                    <Trigger
+                                        Property="IsSelected"
+                                        Value="True">
+
+                                        <Setter
+                                            Property="Background"
+                                            Value="#EEF4FF" />
+
+                                    </Trigger>
+
+                                </Style.Triggers>
+
+                            </Style>
+
+                        </ListBox.ItemContainerStyle>
+
+
+                        <!-- ================================================= -->
+                        <!-- ITEM TEMPLATE -->
+                        <!-- ================================================= -->
+
+                        <ListBox.ItemTemplate>
+
+                            <DataTemplate>
+
+                                <Border
+                                    BorderBrush="#E6E8EC"
+                                    BorderThickness="0,0,0,1"
+                                    Padding="12,11">
+
+                                    <Grid>
+
+                                        <Grid.ColumnDefinitions>
+
+                                            <ColumnDefinition Width="2*" />
+
+                                            <ColumnDefinition Width="2*" />
+
+                                            <ColumnDefinition Width="Auto" />
+
+                                        </Grid.ColumnDefinitions>
+
+
+                                        <!-- ================================================= -->
+                                        <!-- BARANGAY NAME -->
+                                        <!-- ================================================= -->
+
+                                        <TextBlock
+                                            Grid.Column="0"
+                                            Text="{Binding Name}"
+                                            FontSize="13"
+                                            FontWeight="SemiBold"
+                                            Foreground="#222222"
+                                            VerticalAlignment="Center" />
+
+
+                                        <!-- ================================================= -->
+                                        <!-- MIDDLE COLUMN INTENTIONALLY EMPTY -->
+                                        <!-- ================================================= -->
+
+                                        <TextBlock
+                                            Grid.Column="1" />
+
+
+                                        <!-- ================================================= -->
+                                        <!-- STATUS -->
+                                        <!-- ================================================= -->
+
+                                        <Border
+                                            Grid.Column="2"
+                                            Padding="10,4"
+                                            Background="#F1F3F5">
+
+                                            <TextBlock
+                                                Text="{Binding Status}"
+                                                FontSize="10"
+                                                Foreground="#555555"
+                                                VerticalAlignment="Center" />
+
+                                        </Border>
+
+                                    </Grid>
+
+                                </Border>
+
+                            </DataTemplate>
+
+                        </ListBox.ItemTemplate>
+
+                    </ListBox>
+
+                </Grid>
+
+            </Border>
+
+        </Grid>
+
+    </Grid>
+
+</Window>
