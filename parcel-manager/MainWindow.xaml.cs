@@ -9,7 +9,7 @@ namespace ParcelManager
 {
     public partial class MainWindow : Window
     {
-
+        private readonly AuthService _authService;
         private readonly ProjectService _projectService;
         private readonly DrawingService _drawingService;
 
@@ -22,6 +22,7 @@ namespace ParcelManager
         {
             InitializeComponent();
 
+            _authService = new AuthService();
             _projectService = new ProjectService();
             _drawingService = new DrawingService();
         }
@@ -226,16 +227,7 @@ namespace ParcelManager
             object sender,
             RoutedEventArgs e)
         {
-            var result = MessageBox.Show(
-                "Are you sure you want to logout?",
-                "Logout",
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Question);
-
-            if (result == MessageBoxResult.Yes)
-            {
-                Application.Current.Shutdown();
-            }
+            _authService.Logout();
         }
     }
 }
