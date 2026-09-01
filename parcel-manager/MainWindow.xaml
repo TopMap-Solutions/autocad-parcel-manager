@@ -1,10 +1,10 @@
 ﻿<Window
-    x:Class="_12_file_manager.MainWindow"
+    x:Class="ParcelManager.MainWindow"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    xmlns:local="clr-namespace:_12_file_manager"
+    xmlns:local="clr-namespace:ParcelManager"
     mc:Ignorable="d"
     Title="Land Parcel Manager"
     Height="600"
@@ -295,7 +295,7 @@
                             BorderThickness="0"
                             FontWeight="SemiBold"
                             Click="Sync_Click"
-                            Cursor="Hand">
+                            Cursor="Hand" Margin="0,1,0,0" VerticalAlignment="Top">
 
                             <TextBlock
                                 Text="Sync"

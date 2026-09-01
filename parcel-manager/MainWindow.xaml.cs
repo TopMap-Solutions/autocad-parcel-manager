@@ -1,38 +1,31 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
 using System.Windows;
 using System.Windows.Input;
 using Microsoft.Win32;
+using ParcelManager.Models;
+using ParcelManager.Services;
 
-namespace _12_file_manager
+namespace ParcelManager
 {
     public partial class MainWindow : Window
     {
-        // =========================================
-        // PROJECT STATE
-        // =========================================
 
-        private string _projectRootFolder;
-
-        private string _masterDrawingPath;
+        private readonly ProjectService _projectService;
+        private readonly DrawingService _drawingService;
 
 
-        // =========================================
-        // CONSTRUCTOR
-        // =========================================
+        private string? _projectRootFolder;
+        private string? _masterDrawingPath;
+
 
         public MainWindow()
         {
             InitializeComponent();
+
+            _projectService = new ProjectService();
+            _drawingService = new DrawingService();
         }
 
-
-        // =========================================
-        // BROWSE ROOT FOLDER
-        // =========================================
 
         private void BrowseRoot_Click(
             object sender,
@@ -43,17 +36,11 @@ namespace _12_file_manager
                 Title = "Select Project Root Folder"
             };
 
-
             if (dialog.ShowDialog() == true)
             {
                 LoadProjectFolder(dialog.FolderName);
             }
         }
-
-
-        // =========================================
-        // LOAD PROJECT
-        // =========================================
 
         private void LoadProjectFolder(string rootFolder)
         {
@@ -62,8 +49,7 @@ namespace _12_file_manager
                 return;
             }
 
-
-            if (!Directory.Exists(rootFolder))
+            if (!System.IO.Directory.Exists(rootFolder))
             {
                 MessageBox.Show(
                     "The selected folder does not exist.",
@@ -74,187 +60,34 @@ namespace _12_file_manager
                 return;
             }
 
-
-            // Store project root
             _projectRootFolder = rootFolder;
 
             RootFolderTextBox.Text = rootFolder;
 
-
-            // Find MASTER.dwg
-            LoadMasterDrawing(rootFolder);
-
-
-            // Find all other DWG files
-            LoadBarangayDrawings(rootFolder);
-        }
-
-
-        // =========================================
-        // LOAD MASTER DRAWING
-        // =========================================
-
-        private void LoadMasterDrawing(string rootFolder)
-        {
             _masterDrawingPath =
-                FindMasterDrawing(rootFolder);
+                _projectService.FindMasterDrawing(rootFolder);
+
+            var barangays =
+                _projectService.GetBarangayDrawings(rootFolder);
+
+            BarangayList.ItemsSource = barangays;
         }
 
-
-        // =========================================
-        // FIND MASTER.DWG
-        // =========================================
-
-        private string FindMasterDrawing(
-            string rootFolder)
-        {
-            try
-            {
-                return Directory
-                    .GetFiles(
-                        rootFolder,
-                        "*.dwg",
-                        SearchOption.TopDirectoryOnly)
-                    .FirstOrDefault(file =>
-                        string.Equals(
-                            Path.GetFileName(file),
-                            "MASTER.dwg",
-                            StringComparison.OrdinalIgnoreCase));
-            }
-            catch
-            {
-                return null;
-            }
-        }
-
-
-        // =========================================
-        // LOAD BARANGAY DRAWINGS
-        // =========================================
-
-        private void LoadBarangayDrawings(
-            string rootFolder)
-        {
-            var drawings = new List<Barangay>();
-
-
-            try
-            {
-                /*
-                 * Only read DWG files directly inside
-                 * the selected project root.
-                 *
-                 * Subfolders are NOT scanned.
-                 *
-                 * MASTER.dwg is excluded.
-                 */
-
-                var dwgFiles = Directory
-                    .GetFiles(
-                        rootFolder,
-                        "*.dwg",
-                        SearchOption.TopDirectoryOnly)
-                    .Where(file =>
-                        !IsMasterDrawing(file))
-                    .OrderBy(
-                        file => Path.GetFileName(file),
-                        StringComparer.OrdinalIgnoreCase)
-                    .ToList();
-
-
-                foreach (string dwgFile in dwgFiles)
-                {
-                    string drawingName =
-                        Path.GetFileNameWithoutExtension(
-                            dwgFile);
-
-
-                    drawings.Add(
-                        new Barangay(
-                            drawingName,
-                            dwgFile));
-                }
-
-
-                // Update UI
-                BarangayList.ItemsSource = drawings;
-            }
-            catch (UnauthorizedAccessException)
-            {
-                MessageBox.Show(
-                    "Access to the selected project folder was denied.",
-                    "Access Denied",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Error);
-
-                BarangayList.ItemsSource =
-                    new List<Barangay>();
-            }
-            catch (IOException ex)
-            {
-                MessageBox.Show(
-                    $"Could not read the project folder.\n\n{ex.Message}",
-                    "File Error",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Error);
-
-                BarangayList.ItemsSource =
-                    new List<Barangay>();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(
-                    $"An unexpected error occurred.\n\n{ex.Message}",
-                    "Error",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Error);
-
-                BarangayList.ItemsSource =
-                    new List<Barangay>();
-            }
-        }
-
-
-        // =========================================
-        // CHECK IF MASTER DRAWING
-        // =========================================
-
-        private bool IsMasterDrawing(
-            string drawingPath)
-        {
-            return string.Equals(
-                Path.GetFileName(drawingPath),
-                "MASTER.dwg",
-                StringComparison.OrdinalIgnoreCase);
-        }
-
-
-        // =========================================
-        // VIEW MASTER DRAWING
-        // =========================================
 
         private void ViewMaster_Click(
             object sender,
             RoutedEventArgs e)
         {
-            string rootFolder =
+            string? rootFolder =
                 GetSelectedRootFolder();
-
 
             if (rootFolder == null)
             {
                 return;
             }
 
-
-            /*
-             * Search again so the button always
-             * uses the current MASTER.dwg.
-             */
-
             _masterDrawingPath =
-                FindMasterDrawing(rootFolder);
-
+                _projectService.FindMasterDrawing(rootFolder);
 
             if (string.IsNullOrWhiteSpace(
                 _masterDrawingPath))
@@ -268,14 +101,9 @@ namespace _12_file_manager
                 return;
             }
 
-
             OpenDrawing(_masterDrawingPath);
         }
 
-
-        // =========================================
-        // DOUBLE CLICK BARANGAY
-        // =========================================
 
         private void BarangayList_MouseDoubleClick(
             object sender,
@@ -287,26 +115,13 @@ namespace _12_file_manager
                 return;
             }
 
-
             OpenDrawing(barangay.DrawingPath);
         }
 
 
-        // =========================================
-        // OPEN DRAWING
-        // =========================================
-
-        private void OpenDrawing(
-            string drawingPath)
+        private void OpenDrawing(string drawingPath)
         {
-            if (string.IsNullOrWhiteSpace(
-                drawingPath))
-            {
-                return;
-            }
-
-
-            if (!File.Exists(drawingPath))
+            if (!_drawingService.DrawingExists(drawingPath))
             {
                 MessageBox.Show(
                     "The drawing file no longer exists.\n\n" +
@@ -315,33 +130,16 @@ namespace _12_file_manager
                     MessageBoxButton.OK,
                     MessageBoxImage.Warning);
 
-
-                // Refresh the project
-                if (!string.IsNullOrWhiteSpace(
-                    _projectRootFolder))
-                {
-                    LoadProjectFolder(
-                        _projectRootFolder);
-                }
-
+                RefreshProject();
 
                 return;
             }
 
-
-            try
-            {
-                Process.Start(
-                    new ProcessStartInfo
-                    {
-                        FileName = drawingPath,
-                        UseShellExecute = true
-                    });
-            }
-            catch (Exception ex)
+            if (!_drawingService.OpenDrawing(drawingPath))
             {
                 MessageBox.Show(
-                    $"Could not open the drawing.\n\n{ex.Message}",
+                    $"Could not open the drawing.\n\n" +
+                    drawingPath,
                     "Open Drawing Error",
                     MessageBoxButton.OK,
                     MessageBoxImage.Error);
@@ -349,38 +147,27 @@ namespace _12_file_manager
         }
 
 
-        // =========================================
-        // SYNC / REFRESH PROJECT
-        // =========================================
-
         private void Sync_Click(
             object sender,
             RoutedEventArgs e)
         {
-            string rootFolder =
+            string? rootFolder =
                 GetSelectedRootFolder();
-
 
             if (rootFolder == null)
             {
                 return;
             }
 
-
-            // Re-scan project folder
-            LoadProjectFolder(rootFolder);
-
+            RefreshProject();
 
             int drawingCount =
-                GetBarangayDrawingCount(
-                    rootFolder);
-
+                BarangayList.Items.Count;
 
             string masterStatus =
                 _masterDrawingPath != null
                     ? "Found"
                     : "Not found";
-
 
             MessageBox.Show(
                 $"Project refreshed successfully.\n\n" +
@@ -392,42 +179,23 @@ namespace _12_file_manager
         }
 
 
-        // =========================================
-        // GET BARANGAY DRAWING COUNT
-        // =========================================
-
-        private int GetBarangayDrawingCount(
-            string rootFolder)
+        private void RefreshProject()
         {
-            try
+            if (string.IsNullOrWhiteSpace(
+                _projectRootFolder))
             {
-                return Directory
-                    .GetFiles(
-                        rootFolder,
-                        "*.dwg",
-                        SearchOption.TopDirectoryOnly)
-                    .Count(file =>
-                        !IsMasterDrawing(file));
+                return;
             }
-            catch
-            {
-                return 0;
-            }
+
+            LoadProjectFolder(
+                _projectRootFolder);
         }
 
 
-        // =========================================
-        // GET SELECTED ROOT FOLDER
-        // =========================================
-
-        private string GetSelectedRootFolder()
+        private string? GetSelectedRootFolder()
         {
-            string rootFolder =
-                _projectRootFolder;
-
-
             if (string.IsNullOrWhiteSpace(
-                rootFolder))
+                _projectRootFolder))
             {
                 MessageBox.Show(
                     "Please select the project root folder first.",
@@ -438,8 +206,8 @@ namespace _12_file_manager
                 return null;
             }
 
-
-            if (!Directory.Exists(rootFolder))
+            if (!System.IO.Directory.Exists(
+                _projectRootFolder))
             {
                 MessageBox.Show(
                     "The selected project folder no longer exists.",
@@ -450,14 +218,9 @@ namespace _12_file_manager
                 return null;
             }
 
-
-            return rootFolder;
+            return _projectRootFolder;
         }
 
-
-        // =========================================
-        // LOGOUT
-        // =========================================
 
         private void Logout_Click(
             object sender,
@@ -469,49 +232,10 @@ namespace _12_file_manager
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Question);
 
-
             if (result == MessageBoxResult.Yes)
             {
                 Application.Current.Shutdown();
             }
         }
     }
-
-
-    // =============================================
-    // BARANGAY MODEL
-    // =============================================
-
-    public class Barangay
-    {
-        // =========================================
-        // PROPERTIES
-        // =========================================
-
-        public string Name { get; set; }
-
-        public string DrawingPath { get; set; }
-
-        public string DrawingName =>
-            Path.GetFileName(DrawingPath);
-
-        public string Status { get; set; }
-
-
-        // =========================================
-        // CONSTRUCTOR
-        // =========================================
-
-        public Barangay(
-            string name,
-            string drawingPath)
-        {
-            Name = name;
-
-            DrawingPath = drawingPath;
-
-            Status = "Ready";
-        }
-    }
 }
-
