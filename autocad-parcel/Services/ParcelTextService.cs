@@ -1,8 +1,8 @@
 ﻿using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.Geometry;
-using autocad_parcel.Models;
+using ParcelManger.Models;
 
-namespace autocad_parcel.Services
+namespace ParcelManger.Services
 {
     public class ParcelTextService
     {

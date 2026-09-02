@@ -1,4 +1,4 @@
-﻿namespace autocad_parcel.Models
+﻿namespace ParcelManger.Models
 {
     public class ParcelTextModel
     {

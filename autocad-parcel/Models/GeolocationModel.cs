@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using Autodesk.AutoCAD.Geometry;
 
-namespace autocad_parcel.Models
+namespace ParcelManger.Models
 {
     public class GeoLocationModel
     {

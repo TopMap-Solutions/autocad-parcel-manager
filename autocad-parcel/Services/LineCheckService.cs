@@ -1,6 +1,6 @@
 ﻿using Autodesk.AutoCAD.DatabaseServices;
 
-namespace autocad_parcel.Services
+namespace ParcelManger.Services
 {
     public class LineCheckService
     {

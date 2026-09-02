@@ -1,7 +1,7 @@
 ﻿using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.Geometry;
 
-namespace autocad_parcel.Services
+namespace ParcelManger.Services
 {
     public class OverlapCheckService
     {
