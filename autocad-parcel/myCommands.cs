@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Reflection;
-using System.Linq;
 
 using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.DatabaseServices;
@@ -67,18 +65,18 @@ namespace autocad_parcel
                 }
 
                 tr.Commit();
+            }
 
-                if (count == 0)
-                {
-                    ed.WriteMessage(
-                        "\nNo lines found. Ready for sync in the database!");
-                }
-                else
-                {
-                    ed.WriteMessage(
-                        $"\nFound {count} line(s) and colored RED! " +
-                        "Please inspect the lines — either make them a polygon.");
-                }
+            if (count == 0)
+            {
+                ed.WriteMessage(
+                    "\nNo lines found. Ready for sync in the database!");
+            }
+            else
+            {
+                ed.WriteMessage(
+                    $"\nFound {count} line(s) and colored RED! " +
+                    "Please inspect the lines — either make them a polygon.");
             }
         }
 
@@ -132,7 +130,9 @@ namespace autocad_parcel
                             OpenMode.ForRead) as Entity;
 
                     if (entity is Polyline)
+                    {
                         polylineIds.Add(id);
+                    }
                 }
 
                 polylineCount =
@@ -451,38 +451,46 @@ namespace autocad_parcel
         }
 
 
-
         // ================================================================
         // TMSETMAP
         //
-        // Fixed geographic anchor:
+        // Fixed AutoCAD geolocation configuration.
         //
-        // Geographic:
-        //     Latitude  = 7.446114724
-        //     Longitude = 125.807793900
+        // Geographic reference:
         //
-        // CAD / PRS92 Zone 5:
-        //     Easting    = 589000.915
-        //     Northing  = 823481.4641
+        // Latitude  = 7.446114724
+        // Longitude = 125.807793900
+        //
+        // CAD:
+        //
+        // Easting    = 589000.915
+        // Northing  = 823481.4641
         //
         // CRS:
-        //     PRS92.Philippines-5
+        //
+        // PRS92.Philippines-5
+        // EPSG:3125
         //
         // IMPORTANT:
         //
-        // The CAD coordinates are authoritative.
+        // This reproduces the structure of the manually-created
+        // AutoCAD GeoLocationData object.
         //
-        // We DO NOT:
+        // AutoCAD uses:
         //
-        //     TransformFromLonLatAlt()
-        //     UpdateTransformationMatrix()
+        // CoordinateTypeLocal
         //
-        // We directly associate the known geographic point with the
-        // known CAD point.
+        // DesignPoint:
+        //     589000.915
+        //     823481.4641
         //
-        // No GeoLocation UI is displayed.
+        // ReferencePoint:
+        //     589051.5593132314
+        //     823505.0602381761
+        //
+        // Plus the exact 7 mesh points extracted from the
+        // manually-geolocated DWG.
         // ================================================================
-
 
         private const double MapLatitude =
             7.446114724;
@@ -518,320 +526,29 @@ namespace autocad_parcel
             Database db =
                 doc.Database;
 
+
             try
             {
-                // ============================================================
-                // 1. SET DRAWING UNITS TO METRES
-                // ============================================================
+                // ========================================================
+                // 1. Drawing units
+                // ========================================================
 
                 AcadApp.SetSystemVariable(
                     "INSUNITS",
                     6);
 
 
-                // ============================================================
-                // 2. REMOVE EXISTING GEODATA
-                // ============================================================
-
-                try
-                {
-                    ObjectId oldGeoId =
-                        db.GeoDataObject;
-
-                    if (!oldGeoId.IsNull &&
-                        !oldGeoId.IsErased)
-                    {
-                        using (Transaction tr =
-                               db.TransactionManager
-                                 .StartTransaction())
-                        {
-                            DBObject oldGeo =
-                                tr.GetObject(
-                                    oldGeoId,
-                                    OpenMode.ForWrite);
-
-                            oldGeo.Erase();
-
-                            tr.Commit();
-                        }
-                    }
-                }
-                catch
-                {
-                    // No existing geographic data.
-                }
-
-
-                // ============================================================
-                // 3. GET MODEL SPACE
-                // ============================================================
-
-                ObjectId modelSpaceId =
-                    SymbolUtilityServices
-                        .GetBlockModelSpaceId(db);
-
-
-                // ============================================================
-                // 4. CREATE GEODATA
-                // ============================================================
-
-                GeoLocationData geoData =
-                    new GeoLocationData();
-
-
-                // ============================================================
-                // 5. ATTACH GEODATA TO THE DATABASE FIRST
-                //
-                // THIS IS IMPORTANT.
-                //
-                // CoordinateSystem cannot be assigned safely while the
-                // GeoLocationData object has no database.
-                // ============================================================
-
-                geoData.BlockTableRecordId =
-                    modelSpaceId;
-
-                geoData.PostToDb();
-
-
-                // ============================================================
-                // 6. NOW SET THE CRS
-                // ============================================================
-
-                geoData.CoordinateSystem =
-                    MapCoordinateSystem;
-
-
-                // ============================================================
-                // 7. PROJECTED / GRID COORDINATES
-                // ============================================================
-
-                geoData.TypeOfCoordinates =
-                    TypeOfCoordinates.CoordinateTypeGrid;
-
-
-                // ============================================================
-                // 8. GEOGRAPHIC POINT
-                //
-                // AutoCAD geographic coordinates:
-                //
-                // X = Longitude
-                // Y = Latitude
-                //
-                // This represents the point that would be entered into the
-                // manual GEOGRAPHICLOCATION workflow.
-                // ============================================================
-
-                Point2d geographicPoint =
-                    new Point2d(
-                        MapLongitude,
-                        MapLatitude);
-
-
-                geoData.ReferencePoint =
-                    new Point3d(
-                        MapLongitude,
-                        MapLatitude,
-                        MapElevation);
-
-
-                // ============================================================
-                // 9. EXACT CAD POINT
-                //
-                // THIS IS OUR SURVEY CONTROL POINT.
-                //
-                // We do not calculate this from the latitude/longitude.
-                //
-                // This is the exact point in the DWG where the geographic
-                // location is supposed to be anchored.
-                // ============================================================
-
-                Point2d cadPoint =
-                    new Point2d(
-                        MapEasting,
-                        MapNorthing);
-
-
-                geoData.DesignPoint =
-                    new Point3d(
-                        MapEasting,
-                        MapNorthing,
-                        MapElevation);
-
-
-                // ============================================================
-                // 10. NORTH DIRECTION
-                //
-                // Drawing orientation:
-                //
-                // +X = East
-                // +Y = North
-                // ============================================================
-
-                geoData.NorthDirectionVector =
-                    new Vector2d(
-                        0.0,
-                        1.0);
-
-
-                // ============================================================
-                // 11. EXPLICIT CONTROL POINT
-                //
-                // Geographic:
-                //
-                //     125.807793900
-                //     7.446114724
-                //
-                // is associated with:
-                //
-                //     589000.915
-                //     823481.4641
-                //
-                // No transformation function is called by our plugin.
-                // ============================================================
-
-                geoData.AddMeshPointMap(
-                    0,
-                    geographicPoint,
-                    cadPoint);
-
-
-                // ============================================================
-                // 12. DO NOT CALL THESE
-                //
-                // geoData.UpdateTransformationMatrix();
-                //
-                // geoData.TransformFromLonLatAlt(...);
-                //
-                // We intentionally leave them out.
-                // ============================================================
-
-
-                // ============================================================
-                // 13. ENABLE BING HYBRID
-                // ============================================================
-
-                ed.Command(
-                    "_.GEOMAP",
-                    "_HYBRID");
-
-
-                // ============================================================
-                // 14. ZOOM TO EXACT SURVEY POINT
-                // ============================================================
-
-                using (ViewTableRecord view =
-                       ed.GetCurrentView())
-                {
-                    view.CenterPoint =
-                        new Point2d(
-                            MapEasting,
-                            MapNorthing);
-
-                    view.Width =
-                        2000.0;
-
-                    view.Height =
-                        2000.0;
-
-                    ed.SetCurrentView(
-                        view);
-                }
-
-
-                // ============================================================
-                // 15. REGENERATE
-                // ============================================================
-
-                ed.Regen();
-
-
-                // ============================================================
-                // 16. RESULT
-                // ============================================================
-
-                ed.WriteMessage(
-                    "\n\n========================================");
-
-                ed.WriteMessage(
-                    "\n TMSETMAP COMPLETE");
-
-                ed.WriteMessage(
-                    "\n========================================");
-
-                ed.WriteMessage(
-                    $"\n CRS        : {MapCoordinateSystem}");
-
-                ed.WriteMessage(
-                    "\n EPSG       : 3125");
-
-                ed.WriteMessage(
-                    $"\n Easting    : {MapEasting:F4} m");
-
-                ed.WriteMessage(
-                    $"\n Northing   : {MapNorthing:F4} m");
-
-                ed.WriteMessage(
-                    $"\n Latitude   : {MapLatitude:F9}");
-
-                ed.WriteMessage(
-                    $"\n Longitude  : {MapLongitude:F9}");
-
-                ed.WriteMessage(
-                    "\n North      : +Y");
-
-                ed.WriteMessage(
-                    "\n Units      : Metres");
-
-                ed.WriteMessage(
-                    "\n Anchor     : Exact CAD point");
-
-                ed.WriteMessage(
-                    "\n Transform  : None requested");
-
-                ed.WriteMessage(
-                    "\n Map        : Bing Hybrid");
-
-                ed.WriteMessage(
-                    "\n========================================\n");
-            }
-            catch (System.Exception ex)
-            {
-                ed.WriteMessage(
-                    "\n\nTMSETMAP ERROR:");
-
-                ed.WriteMessage(
-                    $"\n{ex.Message}");
-
-                ed.WriteMessage(
-                    $"\n{ex.StackTrace}");
-            }
-        }
-
-
-
-
-
-
-[CommandMethod("TMREADGEODATA")]
-public void TMREADGEODATA()
-        {
-            Document? doc =
-                AcadApp.DocumentManager.MdiActiveDocument;
-
-            if (doc == null)
-                return;
-
-            Editor ed = doc.Editor;
-            Database db = doc.Database;
-
-            try
-            {
-                ed.WriteMessage(
-                    "\n========== TMREADGEODATA ==========");
+                // ========================================================
+                // 2. Model space
+                // ========================================================
 
                 ObjectId modelSpaceId =
                     SymbolUtilityServices.GetBlockModelSpaceId(db);
+
+
+                // ========================================================
+                // 3. Remove existing geographic data
+                // ========================================================
 
                 using (Transaction tr =
                        db.TransactionManager.StartTransaction())
@@ -841,6 +558,397 @@ public void TMREADGEODATA()
                             modelSpaceId,
                             OpenMode.ForRead);
 
+
+                    if (!modelSpace.ExtensionDictionary.IsNull)
+                    {
+                        DBDictionary extDict =
+                            (DBDictionary)tr.GetObject(
+                                modelSpace.ExtensionDictionary,
+                                OpenMode.ForRead);
+
+
+                        const string geoKey =
+                            "ACAD_GEOGRAPHICDATA";
+
+
+                        if (extDict.Contains(geoKey))
+                        {
+                            ObjectId oldGeoId =
+                                extDict.GetAt(geoKey);
+
+
+                            GeoLocationData oldGeo =
+                                (GeoLocationData)tr.GetObject(
+                                    oldGeoId,
+                                    OpenMode.ForWrite);
+
+
+                            oldGeo.Erase();
+                        }
+                    }
+
+
+                    tr.Commit();
+                }
+
+
+                // ========================================================
+                // 4. Create GeoLocationData
+                // ========================================================
+
+                using (Transaction tr =
+                       db.TransactionManager.StartTransaction())
+                {
+                    BlockTableRecord modelSpace =
+                        (BlockTableRecord)tr.GetObject(
+                            modelSpaceId,
+                            OpenMode.ForRead);
+
+
+                    GeoLocationData geoData =
+                        new GeoLocationData();
+
+
+                    // ----------------------------------------------------
+                    // Attach to model space
+                    // ----------------------------------------------------
+
+                    geoData.BlockTableRecordId =
+                        modelSpaceId;
+
+
+                    // IMPORTANT:
+                    //
+                    // Post BEFORE assigning CoordinateSystem.
+                    //
+                    // Otherwise AutoCAD can throw eNoDatabase.
+                    // ----------------------------------------------------
+
+                    geoData.PostToDb();
+
+
+                    // ====================================================
+                    // 5. Coordinate system
+                    // ====================================================
+
+                    geoData.CoordinateSystem =
+                        MapCoordinateSystem;
+
+
+                    // ====================================================
+                    // 6. Coordinate configuration
+                    // ====================================================
+
+                    geoData.TypeOfCoordinates =
+                        TypeOfCoordinates.CoordinateTypeLocal;
+
+
+                    geoData.DesignPoint =
+                        new Point3d(
+                            MapEasting,
+                            MapNorthing,
+                            MapElevation);
+
+
+                    geoData.ReferencePoint =
+                        new Point3d(
+                            589051.5593132314,
+                            823505.0602381761,
+                            0.0);
+
+
+                    geoData.NorthDirectionVector =
+                        new Vector2d(
+                            0.0,
+                            1.0);
+
+
+                    geoData.HorizontalUnits =
+                        UnitsValue.Meters;
+
+
+                    geoData.HorizontalUnitsScale =
+                        1.0;
+
+
+                    geoData.VerticalUnits =
+                        UnitsValue.Meters;
+
+
+                    geoData.VerticalUnitsScale =
+                        1.0;
+
+
+                    geoData.ScaleEstimationMethod =
+                        ScaleEstimationMethod.ScaleEstMethodUnity;
+
+
+                    geoData.ScaleFactor =
+                        1.0;
+
+
+                    geoData.DoSeaLevelCorrection =
+                        false;
+
+
+                    geoData.SeaLevelElevation =
+                        0.0;
+
+
+                    // ====================================================
+                    // 7. Recreate AutoCAD's 7 mesh points
+                    // ====================================================
+
+                    geoData.ResetMeshPointMaps();
+
+
+                    // ----------------------------------------------------
+                    // Mesh Point 0
+                    // ----------------------------------------------------
+
+                    geoData.AddMeshPointMap(
+                        0,
+                        new Point2d(
+                            310736.3078929917,
+                            585993.8550816455),
+                        new Point2d(
+                            123.2937592845364,
+                            5.296780081122221));
+
+
+                    // ----------------------------------------------------
+                    // Mesh Point 1
+                    // ----------------------------------------------------
+
+                    geoData.AddMeshPointMap(
+                        1,
+                        new Point2d(
+                            689263.6921070083,
+                            585993.8550816455),
+                        new Point2d(
+                            126.70824035989993,
+                            5.296676727942055));
+
+
+                    // ----------------------------------------------------
+                    // Mesh Point 2
+                    // ----------------------------------------------------
+
+                    geoData.AddMeshPointMap(
+                        2,
+                        new Point2d(
+                            689263.6921070083,
+                            1409895.418837635),
+                        new Point2d(
+                            126.74389792223572,
+                            12.74274396118969));
+
+
+                    // ----------------------------------------------------
+                    // Mesh Point 3
+                    // ----------------------------------------------------
+
+                    geoData.AddMeshPointMap(
+                        3,
+                        new Point2d(
+                            310736.3078929917,
+                            1410719.320401391),
+                        new Point2d(
+                            123.25852965386093,
+                            12.750303802154598));
+
+
+                    // ----------------------------------------------------
+                    // Mesh Point 4
+                    // ----------------------------------------------------
+
+                    geoData.AddMeshPointMap(
+                        4,
+                        new Point2d(
+                            499103.34916961286,
+                            998356.5877415183),
+                        new Point2d(
+                            124.9929610408809,
+                            9.027911726901952));
+
+
+                    // ----------------------------------------------------
+                    // Mesh Point 5
+                    // ----------------------------------------------------
+
+                    geoData.AddMeshPointMap(
+                        5,
+                        new Point2d(
+                            500000.0,
+                            748742.6578816351),
+                        new Point2d(
+                            125.00104541721251,
+                            6.770824662868423));
+
+
+                    // ----------------------------------------------------
+                    // Mesh Point 6
+                    // ----------------------------------------------------
+
+                    geoData.AddMeshPointMap(
+                        6,
+                        new Point2d(
+                            499646.30643085996,
+                            1247808.95059774),
+                        new Point2d(
+                            124.99795075860223,
+                            11.283263010827639));
+
+
+                    // ====================================================
+                    // 8. Let AutoCAD calculate transformation
+                    // ====================================================
+
+                    geoData.UpdateTransformationMatrix();
+
+
+                    tr.Commit();
+                }
+
+
+                // ========================================================
+                // 9. Enable Bing Hybrid
+                // ========================================================
+
+                ed.Command(
+                    "_.GEOMAP",
+                    "_HYBRID");
+
+
+                // ========================================================
+                // 10. Zoom to authoritative CAD coordinate
+                // ========================================================
+
+                Point3d target =
+                    new Point3d(
+                        MapEasting,
+                        MapNorthing,
+                        MapElevation);
+
+
+                using (ViewTableRecord view =
+                       ed.GetCurrentView())
+                {
+                    view.CenterPoint =
+                        new Point2d(
+                            target.X,
+                            target.Y);
+
+
+                    view.Width =
+                        2000.0;
+
+
+                    view.Height =
+                        2000.0;
+
+
+                    ed.SetCurrentView(
+                        view);
+                }
+
+
+                // ========================================================
+                // 11. Output
+                // ========================================================
+
+                ed.WriteMessage(
+                    "\n========== TMSETMAP ==========");
+
+                ed.WriteMessage(
+                    "\nAutoCAD geolocation configured.");
+
+                ed.WriteMessage(
+                    $"\nLatitude:  {MapLatitude}");
+
+                ed.WriteMessage(
+                    $"\nLongitude: {MapLongitude}");
+
+                ed.WriteMessage(
+                    $"\nEasting:   {MapEasting}");
+
+                ed.WriteMessage(
+                    $"\nNorthing:  {MapNorthing}");
+
+                ed.WriteMessage(
+                    $"\nCRS:       {MapCoordinateSystem}");
+
+                ed.WriteMessage(
+                    "\nType:      CoordinateTypeLocal");
+
+                ed.WriteMessage(
+                    "\nMesh:      7 points");
+
+                ed.WriteMessage(
+                    "\nBing:      Hybrid");
+
+                ed.WriteMessage(
+                    "\n==============================");
+            }
+            catch (System.Exception ex)
+            {
+                ed.WriteMessage(
+                    "\nTMSETMAP ERROR:");
+
+                ed.WriteMessage(
+                    $"\n{ex.GetType().FullName}");
+
+                ed.WriteMessage(
+                    $"\n{ex.Message}");
+            }
+        }
+
+
+        // ================================================================
+        // TMREADGEODATA
+        //
+        // Reads the actual ACAD_GEOGRAPHICDATA object from the DWG.
+        // ================================================================
+
+        [CommandMethod("TMREADGEODATA")]
+        public void TMREADGEODATA()
+        {
+            Document? doc =
+                AcadApp.DocumentManager.MdiActiveDocument;
+
+            if (doc == null)
+                return;
+
+            Editor ed =
+                doc.Editor;
+
+            Database db =
+                doc.Database;
+
+
+            try
+            {
+                ed.WriteMessage(
+                    "\n========== TMREADGEODATA ==========");
+
+
+                ObjectId modelSpaceId =
+                    SymbolUtilityServices.GetBlockModelSpaceId(db);
+
+
+                using (Transaction tr =
+                       db.TransactionManager.StartTransaction())
+                {
+                    BlockTableRecord modelSpace =
+                        (BlockTableRecord)tr.GetObject(
+                            modelSpaceId,
+                            OpenMode.ForRead);
+
+
+                    // ====================================================
+                    // Extension dictionary
+                    // ====================================================
+
                     if (modelSpace.ExtensionDictionary.IsNull)
                     {
                         ed.WriteMessage(
@@ -849,13 +957,16 @@ public void TMREADGEODATA()
                         return;
                     }
 
+
                     DBDictionary extDict =
                         (DBDictionary)tr.GetObject(
                             modelSpace.ExtensionDictionary,
                             OpenMode.ForRead);
 
+
                     const string key =
                         "ACAD_GEOGRAPHICDATA";
+
 
                     if (!extDict.Contains(key))
                     {
@@ -865,8 +976,10 @@ public void TMREADGEODATA()
                         return;
                     }
 
+
                     ObjectId geoId =
                         extDict.GetAt(key);
+
 
                     GeoLocationData geoData =
                         (GeoLocationData)tr.GetObject(
@@ -874,175 +987,200 @@ public void TMREADGEODATA()
                             OpenMode.ForRead);
 
 
-                    // ============================================================
+                    // ====================================================
                     // BASIC DATA
-                    // ============================================================
-
-                    ed.WriteMessage(
-                        $"\n\nGeoLocationData ID: {geoId}");
+                    // ====================================================
 
                     ed.WriteMessage(
                         $"\nCoordinateSystem: " +
                         $"{geoData.CoordinateSystem}");
 
+
                     ed.WriteMessage(
                         $"\nTypeOfCoordinates: " +
                         $"{geoData.TypeOfCoordinates}");
+
 
                     ed.WriteMessage(
                         $"\nDesignPoint: " +
                         $"{geoData.DesignPoint}");
 
+
                     ed.WriteMessage(
                         $"\nReferencePoint: " +
                         $"{geoData.ReferencePoint}");
+
 
                     ed.WriteMessage(
                         $"\nNorthDirectionVector: " +
                         $"{geoData.NorthDirectionVector}");
 
+
                     ed.WriteMessage(
                         $"\nHorizontalUnits: " +
                         $"{geoData.HorizontalUnits}");
+
+
+                    ed.WriteMessage(
+                        $"\nHorizontalUnitsScale: " +
+                        $"{geoData.HorizontalUnitsScale}");
+
 
                     ed.WriteMessage(
                         $"\nScaleEstimationMethod: " +
                         $"{geoData.ScaleEstimationMethod}");
 
+
                     ed.WriteMessage(
                         $"\nScaleFactor: " +
                         $"{geoData.ScaleFactor}");
 
-                    ed.WriteMessage(
-                        $"\nDoSeaLevelCorrection: " +
-                        $"{geoData.DoSeaLevelCorrection}");
 
                     ed.WriteMessage(
-                        $"\nSeaLevelElevation: " +
-                        $"{geoData.SeaLevelElevation}");
-
-                    ed.WriteMessage(
-                        $"\nUpDirection: " +
-                        $"{geoData.UpDirection}");
+                        $"\nNumMeshPoints: " +
+                        $"{geoData.NumMeshPoints}");
 
 
-                    // ============================================================
-                    // MESH OBJECT
-                    // ============================================================
-
-                    ed.WriteMessage(
-                        "\n\n========== MESH ==========");
+                    // ====================================================
+                    // MESH
+                    // ====================================================
 
                     MeshPointMaps mesh =
                         geoData.GetMeshPointMaps();
 
-                    Type meshType =
-                        mesh.GetType();
+
+                    Point2dCollection source =
+                        mesh.SourcePonints;
+
+
+                    Point2dCollection dest =
+                        mesh.DestPonints;
+
 
                     ed.WriteMessage(
-                        $"\nMesh type: {meshType.FullName}");
+                        "\n\n========== MESH POINTS ==========");
 
-
-                    // ============================================================
-                    // MESH METHODS
-                    // ============================================================
 
                     ed.WriteMessage(
-                        "\n\n--- Mesh Methods ---");
+                        $"\nSource count: {source.Count}");
 
-                    MethodInfo[] methods =
-                        meshType.GetMethods(
-                            BindingFlags.Public |
-                            BindingFlags.Instance);
 
-                    foreach (MethodInfo method in methods)
+                    ed.WriteMessage(
+                        $"\nDestination count: {dest.Count}");
+
+
+                    int count =
+                        Math.Min(
+                            source.Count,
+                            dest.Count);
+
+
+                    for (int i = 0;
+                         i < count;
+                         i++)
                     {
-                        ParameterInfo[] parameters =
-                            method.GetParameters();
+                        ed.WriteMessage(
+                            $"\n\nMesh Point [{i}]");
 
-                        string parameterText = "";
-
-                        for (int i = 0;
-                             i < parameters.Length;
-                             i++)
-                        {
-                            if (i > 0)
-                                parameterText += ", ";
-
-                            parameterText +=
-                                parameters[i].ParameterType.Name +
-                                " " +
-                                parameters[i].Name;
-                        }
 
                         ed.WriteMessage(
-                            $"\n{method.Name}" +
-                            $"({parameterText})" +
-                            $" -> {method.ReturnType.Name}");
+                            $"\n  SOURCE = {source[i]}");
+
+
+                        ed.WriteMessage(
+                            $"\n  DEST   = {dest[i]}");
                     }
 
 
-                    // ============================================================
-                    // MESH PROPERTIES
-                    // ============================================================
+                    // ====================================================
+                    // TRANSFORMATION TEST
+                    // ====================================================
 
                     ed.WriteMessage(
-                        "\n\n--- Mesh Properties ---");
+                        "\n\n========== TRANSFORMATION TEST ==========");
 
-                    PropertyInfo[] properties =
-                        meshType.GetProperties(
-                            BindingFlags.Public |
-                            BindingFlags.Instance);
 
-                    foreach (PropertyInfo property in properties)
+                    Point3d testCadPoint =
+                        new Point3d(
+                            MapEasting,
+                            MapNorthing,
+                            MapElevation);
+
+
+                    try
+                    {
+                        Point3d transformed =
+                            geoData.TransformToLonLatAlt(
+                                testCadPoint);
+
+
+                        ed.WriteMessage(
+                            "\nCAD POINT:");
+
+                        ed.WriteMessage(
+                            $"\n  {testCadPoint}");
+
+
+                        ed.WriteMessage(
+                            "\nAUTOCAD -> LON/LAT:");
+
+                        ed.WriteMessage(
+                            $"\n  {transformed}");
+                    }
+                    catch (System.Exception ex)
                     {
                         ed.WriteMessage(
-                            $"\n{property.Name}" +
-                            $" : {property.PropertyType.Name}");
+                            "\nTransformToLonLatAlt ERROR:");
+
+                        ed.WriteMessage(
+                            $"\n{ex.Message}");
                     }
 
 
-                    // ============================================================
-                    // GEOLOCATIONDATA METHODS
-                    // ============================================================
+                    // ====================================================
+                    // REVERSE TEST
+                    // ====================================================
 
-                    ed.WriteMessage(
-                        "\n\n--- GeoLocationData Methods ---");
+                    Point3d geographicPoint =
+                        new Point3d(
+                            MapLongitude,
+                            MapLatitude,
+                            MapElevation);
 
-                    MethodInfo[] geoMethods =
-                        typeof(GeoLocationData).GetMethods(
-                            BindingFlags.Public |
-                            BindingFlags.Instance);
 
-                    foreach (MethodInfo method in geoMethods)
+                    try
                     {
-                        ParameterInfo[] parameters =
-                            method.GetParameters();
+                        Point3d transformedBack =
+                            geoData.TransformFromLonLatAlt(
+                                geographicPoint);
 
-                        string parameterText = "";
-
-                        for (int i = 0;
-                             i < parameters.Length;
-                             i++)
-                        {
-                            if (i > 0)
-                                parameterText += ", ";
-
-                            parameterText +=
-                                parameters[i].ParameterType.Name +
-                                " " +
-                                parameters[i].Name;
-                        }
 
                         ed.WriteMessage(
-                            $"\n{method.Name}" +
-                            $"({parameterText})" +
-                            $" -> {method.ReturnType.Name}");
+                            "\n\nLON/LAT POINT:");
+
+                        ed.WriteMessage(
+                            $"\n  {geographicPoint}");
+
+
+                        ed.WriteMessage(
+                            "\nAUTOCAD LON/LAT -> CAD:");
+
+                        ed.WriteMessage(
+                            $"\n  {transformedBack}");
+                    }
+                    catch (System.Exception ex)
+                    {
+                        ed.WriteMessage(
+                            "\nTransformFromLonLatAlt ERROR:");
+
+                        ed.WriteMessage(
+                            $"\n{ex.Message}");
                     }
 
 
                     ed.WriteMessage(
                         "\n\n========== END ==========");
+
 
                     tr.Commit();
                 }
@@ -1050,24 +1188,15 @@ public void TMREADGEODATA()
             catch (System.Exception ex)
             {
                 ed.WriteMessage(
-                    "\n\nTMREADGEODATA ERROR:");
+                    "\nTMREADGEODATA ERROR:");
 
                 ed.WriteMessage(
-                    $"\nType: {ex.GetType().FullName}");
+                    $"\n{ex.GetType().FullName}");
 
                 ed.WriteMessage(
-                    $"\nMessage: {ex.Message}");
-
-                ed.WriteMessage(
-                    $"\nStack: {ex.StackTrace}");
+                    $"\n{ex.Message}");
             }
         }
-
-
-
-
-
-
     }
 }
 
