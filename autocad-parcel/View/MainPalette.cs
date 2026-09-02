@@ -8,7 +8,7 @@ using System.Windows.Forms;
 using AcadApp =
     Autodesk.AutoCAD.ApplicationServices.Application;
 
-[assembly: CommandClass(typeof(ParcelManger.Commands.ParcelCommands))]
+
 
 namespace ParcelManager.Views
 {
@@ -16,10 +16,6 @@ namespace ParcelManager.Views
     public class MainPalette
     {
         private static PaletteSet? palette;
-
-        // --------------------------------
-        // COLORS
-        // --------------------------------
 
         private static readonly Color Background =
             Color.FromArgb(33, 40, 48);
@@ -52,12 +48,8 @@ namespace ParcelManager.Views
             {
                 palette = new PaletteSet("TM Land Parcel Buddy")
                 {
-                    Size = new Size(340, 540)
+                    Size = new Size(1000, 2040)
                 };
-
-                // --------------------------------
-                // MAIN PANEL
-                // --------------------------------
 
                 Panel mainPanel = new Panel
                 {
@@ -67,10 +59,6 @@ namespace ParcelManager.Views
                     BackColor = Background
                 };
 
-                // --------------------------------
-                // FILL PANEL
-                // --------------------------------
-
                 Panel fillPanel = new Panel
                 {
                     Dock = DockStyle.Fill,
@@ -78,10 +66,6 @@ namespace ParcelManager.Views
                     Margin = new Padding(0),
                     Padding = new Padding(0)
                 };
-
-                // --------------------------------
-                // HEADER
-                // --------------------------------
 
                 Label title = new Label
                 {
@@ -92,15 +76,8 @@ namespace ParcelManager.Views
                     BackColor = Background,
                     Margin = new Padding(0),
                     Padding = new Padding(12, 0, 0, 0),
-
-                    Font = new Font(
-                        "Segoe UI",
-                        12,
-                        FontStyle.Bold
-                    ),
-
-                    TextAlign =
-                        ContentAlignment.MiddleLeft
+                    Font = new Font("Segoe UI", 12, FontStyle.Bold),
+                    TextAlign = ContentAlignment.MiddleLeft
                 };
 
                 Label subtitle = new Label
@@ -112,19 +89,9 @@ namespace ParcelManager.Views
                     BackColor = Background,
                     Margin = new Padding(0),
                     Padding = new Padding(12, 0, 0, 0),
-
-                    Font = new Font(
-                        "Segoe UI",
-                        9
-                    ),
-
-                    TextAlign =
-                        ContentAlignment.MiddleLeft
+                    Font = new Font("Segoe UI", 9),
+                    TextAlign = ContentAlignment.MiddleLeft
                 };
-
-                // --------------------------------
-                // DIVIDER
-                // --------------------------------
 
                 Panel headerDivider = new Panel
                 {
@@ -134,17 +101,15 @@ namespace ParcelManager.Views
                     Margin = new Padding(0)
                 };
 
-                // --------------------------------
-                // GENERAL TOOLS
-                // --------------------------------
-
-                Panel generalPanel = new Panel
+                FlowLayoutPanel generalPanel = new FlowLayoutPanel
                 {
                     Dock = DockStyle.Top,
-                    Height = 112,
+                    AutoSize = true,
+                    AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                    FlowDirection = FlowDirection.TopDown,
+                    WrapContents = false,
                     BackColor = Background,
-                    Margin = new Padding(0),
-                    Padding = new Padding(10)
+                    Padding = new Padding(10, 8, 10, 8)
                 };
 
                 Button setMapButton =
@@ -153,23 +118,18 @@ namespace ParcelManager.Views
                 Button insertParcelTextButton =
                     CreateButton("Insert Parcel Text");
 
-                generalPanel.Controls.Add(
-                    insertParcelTextButton);
+                generalPanel.Controls.Add(setMapButton);
+                generalPanel.Controls.Add(insertParcelTextButton);
 
-                generalPanel.Controls.Add(
-                    setMapButton);
-
-                // --------------------------------
-                // INSPECTION
-                // --------------------------------
-
-                Panel inspectionPanel = new Panel
+                FlowLayoutPanel inspectionPanel = new FlowLayoutPanel
                 {
                     Dock = DockStyle.Top,
-                    Height = 148,
+                    AutoSize = true,
+                    AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                    FlowDirection = FlowDirection.TopDown,
+                    WrapContents = false,
                     BackColor = Background,
-                    Margin = new Padding(0),
-                    Padding = new Padding(10)
+                    Padding = new Padding(10, 8, 10, 8)
                 };
 
                 Label inspectionLabel = new Label
@@ -177,19 +137,13 @@ namespace ParcelManager.Views
                     Text = "INSPECTION",
                     Dock = DockStyle.Top,
                     Height = 30,
+                    Width = 400,
                     ForeColor = Accent,
                     BackColor = Background,
-                    Margin = new Padding(0),
+                    Margin = new Padding(0, 0, 0, 4),
                     Padding = new Padding(2, 0, 0, 4),
-
-                    Font = new Font(
-                        "Segoe UI",
-                        9,
-                        FontStyle.Bold
-                    ),
-
-                    TextAlign =
-                        ContentAlignment.BottomLeft
+                    Font = new Font("Segoe UI", 9, FontStyle.Bold),
+                    TextAlign = ContentAlignment.BottomLeft
                 };
 
                 Button inspectOverlapButton =
@@ -198,18 +152,9 @@ namespace ParcelManager.Views
                 Button inspectLinesButton =
                     CreateButton("Inspect Lines");
 
-                inspectionPanel.Controls.Add(
-                    inspectLinesButton);
-
-                inspectionPanel.Controls.Add(
-                    inspectOverlapButton);
-
-                inspectionPanel.Controls.Add(
-                    inspectionLabel);
-
-                // --------------------------------
-                // EVENTS
-                // --------------------------------
+                inspectionPanel.Controls.Add(inspectionLabel);
+                inspectionPanel.Controls.Add(inspectOverlapButton);
+                inspectionPanel.Controls.Add(inspectLinesButton);
 
                 setMapButton.Click += (sender, e) =>
                 {
@@ -231,80 +176,44 @@ namespace ParcelManager.Views
                     RunCommand("TMCHECKLINES");
                 };
 
-                // --------------------------------
-                // MAIN LAYOUT
-                // --------------------------------
-
                 mainPanel.Controls.Add(fillPanel);
+                mainPanel.Controls.Add(inspectionPanel);
+                mainPanel.Controls.Add(generalPanel);
+                mainPanel.Controls.Add(headerDivider);
+                mainPanel.Controls.Add(subtitle);
+                mainPanel.Controls.Add(title);
 
-                mainPanel.Controls.Add(
-                    inspectionPanel);
-
-                mainPanel.Controls.Add(
-                    generalPanel);
-
-                mainPanel.Controls.Add(
-                    headerDivider);
-
-                mainPanel.Controls.Add(
-                    subtitle);
-
-                mainPanel.Controls.Add(
-                    title);
-
-                palette.Add(
-                    "Tools",
-                    mainPanel);
+                palette.Add("Tools", mainPanel);
             }
 
             palette.Visible = true;
         }
-
-        // --------------------------------
-        // BUTTON
-        // --------------------------------
 
         private static Button CreateButton(string text)
         {
             Button button = new Button
             {
                 Text = text,
-                Dock = DockStyle.Top,
                 Height = 40,
+                Width = 400,
                 BackColor = ButtonColor,
                 ForeColor = Text,
                 FlatStyle = FlatStyle.Flat,
                 Margin = new Padding(0, 0, 0, 6),
                 Padding = new Padding(10, 0, 0, 0),
-
-                Font = new Font(
-                    "Segoe UI",
-                    10
-                ),
-
-                TextAlign =
-                    ContentAlignment.MiddleLeft,
-
+                Font = new Font("Segoe UI", 10),
+                TextAlign = ContentAlignment.MiddleLeft,
                 Cursor = Cursors.Hand
             };
 
             button.FlatAppearance.BorderSize = 1;
-
-            button.FlatAppearance.BorderColor =
-                ButtonBorder;
-
-            button.FlatAppearance.MouseOverBackColor =
-                ButtonHover;
-
-            button.FlatAppearance.MouseDownBackColor =
-                PanelColor;
+            button.FlatAppearance.BorderColor = ButtonBorder;
+            button.FlatAppearance.MouseOverBackColor = ButtonHover;
+            button.FlatAppearance.MouseDownBackColor = PanelColor;
 
             return button;
         }
 
-        // --------------------------------
-        // RUN COMMAND
-        // --------------------------------
         private static void RunCommand(string command)
         {
             Document? doc =
