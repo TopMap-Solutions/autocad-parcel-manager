@@ -29,8 +29,10 @@ namespace ParcelManger.Services
                     {
                         Contents = parcel.GetFormattedText(),
                         Location = location,
-                        Height = 1,
-                        Attachment = AttachmentPoint.MiddleLeft
+                        Attachment = AttachmentPoint.MiddleLeft,
+                        Color = Autodesk.AutoCAD.Colors.Color.FromRgb(255, 0, 0),
+                        TextHeight = 1.5,
+                        Width = 0,
                     };
 
                 modelSpace.AppendEntity(text);

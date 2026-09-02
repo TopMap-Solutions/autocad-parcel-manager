@@ -52,7 +52,7 @@ namespace ParcelManager.Views
             {
                 palette = new PaletteSet("TM Land Parcel Buddy")
                 {
-                    Size = new Size(340, 500)
+                    Size = new Size(340, 540)
                 };
 
                 // --------------------------------

@@ -213,45 +213,73 @@ namespace ParcelManger.Commands
             if (doc == null)
                 return;
 
-            Editor ed =
-                doc.Editor;
-
-            Database db =
-                doc.Database;
-
+            Editor ed = doc.Editor;
+            Database db = doc.Database;
 
             try
             {
-                // ========================================================
-                // 1. Set drawing units to meters
-                // ========================================================
+                // ============================================================
+                // 1. Drawing units
+                // ============================================================
 
                 AcadApp.SetSystemVariable(
                     "INSUNITS",
                     6);
 
 
-                // ========================================================
-                // 2. Create / replace AutoCAD geolocation data
-                // ========================================================
+                // ============================================================
+                // 2. Check existing geographic data
+                // ============================================================
 
-                _geoService.SetGeoLocation(
-                    db,
-                    MapConfiguration);
+                bool hasGeoLocation = false;
+
+                using (Transaction tr =
+                       db.TransactionManager.StartTransaction())
+                {
+                    GeoLocationData? existing =
+                        _geoService.GetGeoLocation(
+                            db,
+                            tr);
+
+                    hasGeoLocation =
+                        existing != null;
+
+                    tr.Commit();
+                }
 
 
-                // ========================================================
-                // 3. Enable Bing Hybrid
-                // ========================================================
+                // ============================================================
+                // 3. Only CREATE geolocation if it doesn't already exist
+                // ============================================================
+
+                if (!hasGeoLocation)
+                {
+                    ed.WriteMessage(
+                        "\nCreating AutoCAD geographic data...");
+
+                    _geoService.SetGeoLocation(
+                        db,
+                        MapConfiguration);
+                }
+                else
+                {
+                    ed.WriteMessage(
+                        "\nGeographic data already exists. Reusing it.");
+                }
+
+
+                // ============================================================
+                // 4. Enable Bing Hybrid
+                // ============================================================
 
                 ed.Command(
                     "_.GEOMAP",
                     "_HYBRID");
 
 
-                // ========================================================
-                // 4. Zoom to authoritative CAD coordinate
-                // ========================================================
+                // ============================================================
+                // 5. Zoom to authoritative CAD coordinate
+                // ============================================================
 
                 Point3d target =
                     new Point3d(
@@ -268,20 +296,16 @@ namespace ParcelManger.Commands
                             target.X,
                             target.Y);
 
-                    view.Width =
-                        2000.0;
+                    view.Width = 2000.0;
+                    view.Height = 2000.0;
 
-                    view.Height =
-                        2000.0;
-
-                    ed.SetCurrentView(
-                        view);
+                    ed.SetCurrentView(view);
                 }
 
 
-                // ========================================================
-                // 5. Output
-                // ========================================================
+                // ============================================================
+                // 6. Output
+                // ============================================================
 
                 ed.WriteMessage(
                     "\n========== TMSETMAP ==========");
@@ -305,10 +329,7 @@ namespace ParcelManger.Commands
                     $"\nCRS:       {MapConfiguration.CoordinateSystem}");
 
                 ed.WriteMessage(
-                    "\nType:      CoordinateTypeLocal");
-
-                ed.WriteMessage(
-                    $"\nMesh:      {MapConfiguration.MeshPoints.Count} points");
+                    $"\nMesh:      {MapConfiguration.MeshPoints.Count}");
 
                 ed.WriteMessage(
                     "\nBing:      Hybrid");

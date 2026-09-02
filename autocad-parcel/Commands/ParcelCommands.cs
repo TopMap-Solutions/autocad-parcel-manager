@@ -202,7 +202,8 @@ namespace ParcelManger.Commands
             _parcelTextService.CreateText(
                 doc.Database,
                 pointResult.Value,
-                parcel);
+                parcel
+                );
 
             ed.WriteMessage(
                 "\nParcel text created.");
