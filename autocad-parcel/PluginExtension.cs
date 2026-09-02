@@ -1,22 +1,27 @@
 ﻿using Autodesk.AutoCAD.Runtime;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace autocad_parcel
+
+[assembly: ExtensionApplication(typeof(ParcelManager.PluginExtension))]
+
+[assembly: CommandClass(typeof(ParcelManger.Commands.ParcelCommands))]
+
+[assembly: CommandClass(typeof(ParcelManger.Commands.GeoLocationCommands))]
+
+[assembly: CommandClass(typeof(ParcelManager.Commands.BuddyCommands))]
+
+
+namespace ParcelManager
 {
     public class PluginExtension : IExtensionApplication
     {
         public void Initialize()
         {
-            // Add your initialization code here
+            // Plugin startup
         }
 
         public void Terminate()
         {
-            // Add your termination code here
+            // Plugin shutdown
         }
     }
 }

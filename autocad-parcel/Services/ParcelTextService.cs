@@ -1,8 +1,8 @@
 ﻿using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.Geometry;
-using autocad_parcel.Models;
+using ParcelManger.Models;
 
-namespace autocad_parcel.Services
+namespace ParcelManger.Services
 {
     public class ParcelTextService
     {
@@ -29,8 +29,10 @@ namespace autocad_parcel.Services
                     {
                         Contents = parcel.GetFormattedText(),
                         Location = location,
-                        Height = 1,
-                        Attachment = AttachmentPoint.MiddleLeft
+                        Attachment = AttachmentPoint.MiddleLeft,
+                        Color = Autodesk.AutoCAD.Colors.Color.FromRgb(255, 0, 0),
+                        TextHeight = 1.5,
+                        Width = 0,
                     };
 
                 modelSpace.AppendEntity(text);

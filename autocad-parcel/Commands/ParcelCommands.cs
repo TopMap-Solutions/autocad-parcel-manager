@@ -7,10 +7,10 @@ using Autodesk.AutoCAD.Runtime;
 using AcadApp =
     Autodesk.AutoCAD.ApplicationServices.Application;
 
-using autocad_parcel.Models;
-using autocad_parcel.Services;
+using ParcelManger.Models;
+using ParcelManger.Services;
 
-namespace autocad_parcel.Commands
+namespace ParcelManger.Commands
 {
     public class ParcelCommands
     {
@@ -202,7 +202,8 @@ namespace autocad_parcel.Commands
             _parcelTextService.CreateText(
                 doc.Database,
                 pointResult.Value,
-                parcel);
+                parcel
+                );
 
             ed.WriteMessage(
                 "\nParcel text created.");
