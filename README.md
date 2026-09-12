@@ -33,7 +33,7 @@ A project-level file manager for managing barangay CAD drawings.
 
 ### Screenshots
 
-![AutoCAD Parcel Manager](public/buddy.png)
+![AutoCAD Parcel Manager](public/manager.png)
 
 **Goals:**
 

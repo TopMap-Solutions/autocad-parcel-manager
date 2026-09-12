@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Net.Http;
 using System.Windows;
 using System.Windows.Input;
 using Microsoft.Win32;
@@ -12,6 +13,7 @@ namespace ParcelManager
         private readonly AuthService _authService;
         private readonly ProjectService _projectService;
         private readonly DrawingService _drawingService;
+        private readonly SyncService _syncService;
 
 
         private string? _projectRootFolder;
@@ -25,6 +27,7 @@ namespace ParcelManager
             _authService = new AuthService();
             _projectService = new ProjectService();
             _drawingService = new DrawingService();
+            _syncService = new SyncService();
         }
 
 
@@ -148,7 +151,7 @@ namespace ParcelManager
         }
 
 
-        private void Sync_Click(
+        private async void Sync_Click(
             object sender,
             RoutedEventArgs e)
         {
@@ -160,23 +163,40 @@ namespace ParcelManager
                 return;
             }
 
-            RefreshProject();
+            try
+            {
+                string zipPath =
+                    await _syncService.DownloadLatestDwgsAsync(
+                        rootFolder);
 
-            int drawingCount =
-                BarangayList.Items.Count;
+                _syncService.ExtractDwgs(
+                    zipPath,
+                    rootFolder);
 
-            string masterStatus =
-                _masterDrawingPath != null
-                    ? "Found"
-                    : "Not found";
+                RefreshProject();
 
-            MessageBox.Show(
-                $"Project refreshed successfully.\n\n" +
-                $"Master drawing: {masterStatus}\n" +
-                $"Barangay drawings: {drawingCount}",
-                "Sync Complete",
-                MessageBoxButton.OK,
-                MessageBoxImage.Information);
+                MessageBox.Show(
+                    "Latest parcel drawings downloaded and extracted successfully.",
+                    "Sync Complete",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+            }
+            catch (HttpRequestException)
+            {
+                MessageBox.Show(
+                    "Could not connect to the GIS server.",
+                    "Sync Error",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    $"Sync failed.\n\n{ex.Message}",
+                    "Sync Error",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
         }
 
 
