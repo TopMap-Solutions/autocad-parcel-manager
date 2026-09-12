@@ -42,11 +42,14 @@ namespace ParcelManager
 
             if (dialog.ShowDialog() == true)
             {
-                LoadProjectFolder(dialog.FolderName);
+                LoadProjectFolder(
+                    dialog.FolderName);
             }
         }
 
-        private void LoadProjectFolder(string rootFolder)
+
+        private void LoadProjectFolder(
+            string rootFolder)
         {
             if (string.IsNullOrWhiteSpace(rootFolder))
             {
@@ -64,17 +67,22 @@ namespace ParcelManager
                 return;
             }
 
-            _projectRootFolder = rootFolder;
+            _projectRootFolder =
+                rootFolder;
 
-            RootFolderTextBox.Text = rootFolder;
+            RootFolderTextBox.Text =
+                rootFolder;
 
             _masterDrawingPath =
-                _projectService.FindMasterDrawing(rootFolder);
+                _projectService.FindMasterDrawing(
+                    rootFolder);
 
             var barangays =
-                _projectService.GetBarangayDrawings(rootFolder);
+                _projectService.GetBarangayDrawings(
+                    rootFolder);
 
-            BarangayList.ItemsSource = barangays;
+            BarangayList.ItemsSource =
+                barangays;
         }
 
 
@@ -91,7 +99,8 @@ namespace ParcelManager
             }
 
             _masterDrawingPath =
-                _projectService.FindMasterDrawing(rootFolder);
+                _projectService.FindMasterDrawing(
+                    rootFolder);
 
             if (string.IsNullOrWhiteSpace(
                 _masterDrawingPath))
@@ -105,7 +114,8 @@ namespace ParcelManager
                 return;
             }
 
-            OpenDrawing(_masterDrawingPath);
+            OpenDrawing(
+                _masterDrawingPath);
         }
 
 
@@ -119,13 +129,16 @@ namespace ParcelManager
                 return;
             }
 
-            OpenDrawing(barangay.DrawingPath);
+            OpenDrawing(
+                barangay.DrawingPath);
         }
 
 
-        private void OpenDrawing(string drawingPath)
+        private void OpenDrawing(
+            string drawingPath)
         {
-            if (!_drawingService.DrawingExists(drawingPath))
+            if (!_drawingService.DrawingExists(
+                drawingPath))
             {
                 MessageBox.Show(
                     "The drawing file no longer exists.\n\n" +
@@ -139,7 +152,8 @@ namespace ParcelManager
                 return;
             }
 
-            if (!_drawingService.OpenDrawing(drawingPath))
+            if (!_drawingService.OpenDrawing(
+                drawingPath))
             {
                 MessageBox.Show(
                     $"Could not open the drawing.\n\n" +
@@ -165,26 +179,38 @@ namespace ParcelManager
 
             try
             {
-                string zipPath =
-                    await _syncService.DownloadLatestDwgsAsync(
+                var barangays =
+                    _projectService.GetBarangayDrawings(
                         rootFolder);
 
-                _syncService.ExtractDwgs(
-                    zipPath,
-                    rootFolder);
+                int syncedCount =
+                    await _syncService.SyncAsync(
+                        rootFolder,
+                        barangays);
 
                 RefreshProject();
 
+                if (syncedCount == 0)
+                {
+                    MessageBox.Show(
+                        "All parcel drawings are already up to date.",
+                        "Sync Complete",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information);
+
+                    return;
+                }
+
                 MessageBox.Show(
-                    "Latest parcel drawings downloaded and extracted successfully.",
+                    $"{syncedCount} parcel drawing(s) synchronized successfully.",
                     "Sync Complete",
                     MessageBoxButton.OK,
                     MessageBoxImage.Information);
             }
-            catch (HttpRequestException)
+            catch (HttpRequestException ex)
             {
                 MessageBox.Show(
-                    "Could not connect to the GIS server.",
+                    $"GIS server request failed.\n\n{ex.Message}",
                     "Sync Error",
                     MessageBoxButton.OK,
                     MessageBoxImage.Error);
