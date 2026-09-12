@@ -232,12 +232,7 @@
                             <ColumnDefinition Width="Auto" />
 
                             <!-- SYNC -->
-                            <ColumnDefinition Width="Auto" />
-
-							<!-- SYNC -->
-							<ColumnDefinition Width="Auto" />
-							
-							
+                            <ColumnDefinition Width="Auto" />			
 
                         </Grid.ColumnDefinitions>
 
@@ -308,13 +303,6 @@
                                 HorizontalAlignment="Center" />
 
                         </Button>
-
-						<Button
-							Content="TEST DXF"
-							Click="TestDxf_Click"
-							Width="120"
-							Height="30"
-							Margin="5"/>
 
                     </Grid>
 
