@@ -14,6 +14,7 @@ namespace ParcelManager
         private readonly ProjectService _projectService;
         private readonly DrawingService _drawingService;
         private readonly SyncService _syncService;
+        private readonly DxfService _dxfTestService;
 
 
         private string? _projectRootFolder;
@@ -28,6 +29,7 @@ namespace ParcelManager
             _projectService = new ProjectService();
             _drawingService = new DrawingService();
             _syncService = new SyncService();
+            _dxfTestService = new DxfService();
         }
 
 
@@ -274,6 +276,29 @@ namespace ParcelManager
             RoutedEventArgs e)
         {
             _authService.Logout();
+        }
+
+        private async void TestDxf_Click(
+            object sender,
+            RoutedEventArgs e)
+        {
+            string? rootFolder =
+                GetSelectedRootFolder();
+
+            if (rootFolder == null)
+            {
+                return;
+            }
+
+            var result =
+                await _dxfTestService.ConvertAllAsync(
+                    rootFolder);
+
+            MessageBox.Show(
+                result.Message,
+                "DXF Conversion",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
         }
     }
 }
