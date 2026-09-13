@@ -9,4 +9,9 @@
     <UseWPF>true</UseWPF>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="AutoCAD.NET" Version="26.0.0" />
+    <PackageReference Include="AutoCAD.NET.Core" Version="26.0.0" />
+  </ItemGroup>
+
 </Project>

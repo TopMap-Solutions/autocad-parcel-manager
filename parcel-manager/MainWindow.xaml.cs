@@ -14,6 +14,7 @@ namespace ParcelManager
         private readonly ProjectService _projectService;
         private readonly DrawingService _drawingService;
         private readonly SyncService _syncService;
+        private readonly DxfService _dxfTestService;
 
 
         private string? _projectRootFolder;
@@ -28,6 +29,7 @@ namespace ParcelManager
             _projectService = new ProjectService();
             _drawingService = new DrawingService();
             _syncService = new SyncService();
+            _dxfTestService = new DxfService();
         }
 
 
@@ -275,5 +277,6 @@ namespace ParcelManager
         {
             _authService.Logout();
         }
+
     }
 }

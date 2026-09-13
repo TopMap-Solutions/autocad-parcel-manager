@@ -232,7 +232,7 @@
                             <ColumnDefinition Width="Auto" />
 
                             <!-- SYNC -->
-                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />			
 
                         </Grid.ColumnDefinitions>
 
