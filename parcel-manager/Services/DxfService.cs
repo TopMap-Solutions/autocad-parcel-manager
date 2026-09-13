@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Threading.Tasks;
 using ParcelManager.Models;
 
@@ -12,7 +13,6 @@ namespace ParcelManager.Services
     {
         private const string CoreConsolePath =
             @"C:\Program Files\Autodesk\AutoCAD 2027\accoreconsole.exe";
-
 
         public async Task<DxfConversionResult> ConvertAllAsync(
             string rootFolder)
@@ -54,6 +54,7 @@ namespace ParcelManager.Services
                         StringComparison.OrdinalIgnoreCase))
                 .ToArray();
 
+
             DeleteOrphanDxfs(
                 dxfFolder,
                 dwgFiles);
@@ -67,7 +68,7 @@ namespace ParcelManager.Services
 
 
                 if (string.IsNullOrWhiteSpace(
-                        fileName))
+                    fileName))
                 {
                     continue;
                 }
@@ -79,18 +80,45 @@ namespace ParcelManager.Services
                         fileName + ".dxf");
 
 
+                string metadataPath =
+                    GetMetadataPath(
+                        dxfPath);
+
+
                 try
                 {
                     DeleteOldVersionDxfs(
                         dxfFolder,
                         fileName);
 
-                    if (File.Exists(dxfPath))
+
+                    string dwgSha =
+                        CalculateSha256(
+                            dwgPath);
+
+
+                    bool dxfIsCurrent =
+                        IsDxfCurrent(
+                            dxfPath,
+                            metadataPath,
+                            dwgSha);
+
+
+                    if (dxfIsCurrent)
                     {
                         result.Skipped++;
 
                         continue;
                     }
+
+
+                    DeleteIfExists(
+                        dxfPath);
+
+
+                    DeleteIfExists(
+                        metadataPath);
+
 
                     bool success =
                         await ConvertSingleAsync(
@@ -98,20 +126,27 @@ namespace ParcelManager.Services
                             dxfPath);
 
 
-                    if (success)
-                    {
-                        result.Success++;
-                    }
-                    else
+                    if (!success)
                     {
                         result.Failed++;
+
+                        continue;
                     }
+
+
+                    WriteDxfMetadata(
+                        metadataPath,
+                        dwgSha);
+
+
+                    result.Success++;
                 }
                 catch
                 {
                     result.Failed++;
                 }
             }
+
 
             result.Message =
                 $"DXF conversion complete.\n\n" +
@@ -121,6 +156,72 @@ namespace ParcelManager.Services
 
 
             return result;
+        }
+
+
+        private string GetMetadataPath(
+            string dxfPath)
+        {
+            return dxfPath + ".sha256";
+        }
+
+
+        private bool IsDxfCurrent(
+            string dxfPath,
+            string metadataPath,
+            string dwgSha)
+        {
+            if (!File.Exists(dxfPath))
+            {
+                return false;
+            }
+
+
+            if (!File.Exists(metadataPath))
+            {
+                return false;
+            }
+
+
+            string storedSha =
+                File.ReadAllText(
+                    metadataPath)
+                .Trim();
+
+
+            return string.Equals(
+                storedSha,
+                dwgSha,
+                StringComparison.OrdinalIgnoreCase);
+        }
+
+
+        private void WriteDxfMetadata(
+            string metadataPath,
+            string dwgSha)
+        {
+            File.WriteAllText(
+                metadataPath,
+                dwgSha);
+        }
+
+
+        private void DeleteIfExists(
+            string path)
+        {
+            if (!File.Exists(path))
+            {
+                return;
+            }
+
+
+            try
+            {
+                File.Delete(path);
+            }
+            catch
+            {
+            }
         }
 
 
@@ -141,7 +242,7 @@ namespace ParcelManager.Services
 
 
                 if (string.IsNullOrWhiteSpace(
-                        fileName))
+                    fileName))
                 {
                     continue;
                 }
@@ -165,30 +266,28 @@ namespace ParcelManager.Services
                     Path.GetFileNameWithoutExtension(
                         dxfPath);
 
+
                 if (string.IsNullOrWhiteSpace(
-                        dxfFileName))
+                    dxfFileName))
                 {
                     continue;
                 }
+
 
                 if (currentDwgNames.Contains(
-                        dxfFileName))
+                    dxfFileName))
                 {
                     continue;
                 }
 
 
-                try
-                {
-                    File.Delete(
-                        dxfPath);
-                }
-                catch
-                {
-                    /*
-                     * Ignore deletion errors.
-                     */
-                }
+                DeleteIfExists(
+                    dxfPath);
+
+
+                DeleteIfExists(
+                    GetMetadataPath(
+                        dxfPath));
             }
         }
 
@@ -197,7 +296,6 @@ namespace ParcelManager.Services
             string dxfFolder,
             string currentFileName)
         {
-
             string currentBarangay =
                 GetBarangayName(
                     currentFileName);
@@ -216,8 +314,9 @@ namespace ParcelManager.Services
                     Path.GetFileNameWithoutExtension(
                         dxfPath);
 
+
                 if (string.IsNullOrWhiteSpace(
-                        existingFileName))
+                    existingFileName))
                 {
                     continue;
                 }
@@ -227,37 +326,32 @@ namespace ParcelManager.Services
                     GetBarangayName(
                         existingFileName);
 
+
                 if (!string.Equals(
-                        existingBarangay,
-                        currentBarangay,
-                        StringComparison.OrdinalIgnoreCase))
+                    existingBarangay,
+                    currentBarangay,
+                    StringComparison.OrdinalIgnoreCase))
                 {
                     continue;
                 }
 
 
                 if (string.Equals(
-                        existingFileName,
-                        currentFileName,
-                        StringComparison.OrdinalIgnoreCase))
+                    existingFileName,
+                    currentFileName,
+                    StringComparison.OrdinalIgnoreCase))
                 {
                     continue;
                 }
 
-                try
-                {
-                    File.Delete(
-                        dxfPath);
-                }
-                catch
-                {
-                    /*
-                     * Ignore deletion errors.
-                     *
-                     * Conversion will fail naturally
-                     * if the old file prevents creation.
-                     */
-                }
+
+                DeleteIfExists(
+                    dxfPath);
+
+
+                DeleteIfExists(
+                    GetMetadataPath(
+                        dxfPath));
             }
         }
 
@@ -265,8 +359,6 @@ namespace ParcelManager.Services
         private string GetBarangayName(
             string fileName)
         {
-
-
             int versionIndex =
                 fileName.LastIndexOf(
                     "_v",
@@ -281,14 +373,15 @@ namespace ParcelManager.Services
 
 
                 if (int.TryParse(
-                        version,
-                        out _))
+                    version,
+                    out _))
                 {
                     return fileName.Substring(
                         0,
                         versionIndex);
                 }
             }
+
 
             return fileName;
         }
@@ -304,10 +397,11 @@ namespace ParcelManager.Services
 
 
             if (string.IsNullOrWhiteSpace(
-                    folder))
+                folder))
             {
                 return false;
             }
+
 
             string scriptPath =
                 Path.Combine(
@@ -354,27 +448,35 @@ namespace ParcelManager.Services
 
                 process.Start();
 
-
                 await process.WaitForExitAsync();
+
 
                 return File.Exists(
                     dxfPath);
             }
             finally
             {
-                if (File.Exists(
-                        scriptPath))
-                {
-                    try
-                    {
-                        File.Delete(
-                            scriptPath);
-                    }
-                    catch
-                    {
-                    }
-                }
+                DeleteIfExists(
+                    scriptPath);
             }
+        }
+
+
+        private string CalculateSha256(
+            string filePath)
+        {
+            using FileStream stream =
+                File.OpenRead(filePath);
+
+
+            byte[] hash =
+                SHA256.HashData(
+                    stream);
+
+
+            return Convert.ToHexString(
+                hash)
+                .ToLowerInvariant();
         }
     }
 }
