@@ -97,9 +97,9 @@ namespace ParcelManager.Views
             RootFolderTextBox.Text =
                 rootFolder;
 
-            _masterDrawingPath =
-                _projectService.FindMasterDrawing(
-                    rootFolder);
+            //_masterDrawingPath =
+            //    _projectService.FindMasterDrawing(
+            //        rootFolder);
 
             var barangays =
                 _projectService.GetBarangayDrawings(

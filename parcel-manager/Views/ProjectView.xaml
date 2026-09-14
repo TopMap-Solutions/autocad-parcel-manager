@@ -117,7 +117,7 @@
                     </StackPanel>
 
 
-                    <Button
+                    <!-- <Button
                         Grid.Column="1"
                         Width="155"
                         Height="36"
@@ -135,7 +135,7 @@
                             VerticalAlignment="Center"
                             HorizontalAlignment="Center" />
 
-                    </Button>
+                    </Button> -->
 
                     <Button
                         Grid.Column="2"
