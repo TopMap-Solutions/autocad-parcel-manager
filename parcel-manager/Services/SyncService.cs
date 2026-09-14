@@ -13,25 +13,44 @@ namespace ParcelManager.Services
     public class SyncService
     {
         private readonly HttpClient _httpClient;
+        private readonly ConfigService _configService;
         private readonly DxfService _dxfService;
         private readonly UploadService _uploadService;
 
-        private const string ManifestUrl =
-            "http://127.0.0.1:8000/api/parcels/sync/manifest/";
-
-        private const string DownloadUrl =
-            "http://127.0.0.1:8000/api/parcels/sync/download/";
-
-        public SyncService()
+        public SyncService(
+            ConfigService configService)
         {
+            _configService =
+                configService;
+
             _httpClient =
                 new HttpClient();
 
             _dxfService =
-                new DxfService();
+                new DxfService(
+                    _configService);
 
             _uploadService =
                 new UploadService();
+        }
+
+        // ============================================================
+        // BASE URL
+        // ============================================================
+
+        private string GetBaseUrl()
+        {
+            string baseUrl =
+                _configService.Config.BaseUrl;
+
+            if (string.IsNullOrWhiteSpace(
+                baseUrl))
+            {
+                throw new InvalidOperationException(
+                    "The application server URL is not configured.");
+            }
+
+            return baseUrl.TrimEnd('/');
         }
 
         // ============================================================
@@ -40,9 +59,15 @@ namespace ParcelManager.Services
 
         public async Task<Manifest> DownloadManifestAsync()
         {
+            string baseUrl =
+                GetBaseUrl();
+
+            string manifestUrl =
+                $"{baseUrl}/api/parcels/sync/manifest/";
+
             using HttpResponseMessage response =
                 await _httpClient.GetAsync(
-                    ManifestUrl);
+                    manifestUrl);
 
             string responseBody =
                 await response.Content.ReadAsStringAsync();
@@ -51,7 +76,7 @@ namespace ParcelManager.Services
             {
                 throw new HttpRequestException(
                     $"Manifest request failed.\n\n" +
-                    $"URL: {ManifestUrl}\n" +
+                    $"URL: {manifestUrl}\n" +
                     $"Status: {(int)response.StatusCode} " +
                     $"{response.StatusCode}\n\n" +
                     $"Response:\n{responseBody}");
@@ -77,7 +102,8 @@ namespace ParcelManager.Services
         public string CalculateSha256(
             string filePath)
         {
-            if (!File.Exists(filePath))
+            if (!File.Exists(
+                filePath))
             {
                 throw new FileNotFoundException(
                     "The file was not found.",
@@ -88,7 +114,8 @@ namespace ParcelManager.Services
                 File.OpenRead(filePath);
 
             byte[] hash =
-                SHA256.HashData(stream);
+                SHA256.HashData(
+                    stream);
 
             return Convert.ToHexString(hash)
                 .ToLowerInvariant();
@@ -135,7 +162,8 @@ namespace ParcelManager.Services
                 // File does not exist locally.
                 // ----------------------------------------------------
 
-                if (!File.Exists(localPath))
+                if (!File.Exists(
+                    localPath))
                 {
                     filesToSync.Add(
                         file);
@@ -527,8 +555,11 @@ namespace ParcelManager.Services
                     tempPath);
             }
 
+            string baseUrl =
+                GetBaseUrl();
+
             string url =
-                $"{DownloadUrl}{importId}/";
+                $"{baseUrl}/api/parcels/sync/download/{importId}/";
 
             using HttpResponseMessage response =
                 await _httpClient.GetAsync(

@@ -1,10 +1,19 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 
-namespace parcel_manager.Models
+namespace ParcelManager.Models
 {
-    internal class Auth
+    public class TokenResponse
     {
+        public string Access { get; set; } = "";
+        public string Refresh { get; set; } = "";
+    }
+
+    public enum LoginResult
+    {
+        Success,
+        InvalidCredentials,
+        ServerUnavailable,
+        Timeout,
+        Failed
     }
 }

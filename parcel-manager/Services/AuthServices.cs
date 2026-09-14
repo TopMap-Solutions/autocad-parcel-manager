@@ -4,38 +4,48 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
-using System.Windows;
+
+using ParcelManager.Models;
 
 namespace ParcelManager.Services
 {
     public class AuthService
     {
         private readonly HttpClient _httpClient;
-
-        private const string LoginUrl =
-            "http://127.0.0.1:8000/api/auth/login/";
+        private readonly ConfigService _configService;
+        private readonly JsonSerializerOptions _jsonOptions;
 
         private string? _accessToken;
         private string? _refreshToken;
+        private string? _username;
 
         public bool IsAuthenticated =>
             !string.IsNullOrWhiteSpace(_accessToken);
 
-        public AuthService()
+        public AuthService(
+            ConfigService configService)
         {
+            _configService = configService;
+
             _httpClient = new HttpClient
             {
                 Timeout = TimeSpan.FromSeconds(30)
             };
+
+            _jsonOptions = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            };
         }
 
-        // =========================================================
-        // LOGIN
-        // =========================================================
+        public string? GetUsername()
+        {
+            return _username;
+        }
 
-        public async Task<bool> LoginAsync(
-            string username,
-            string password)
+        public async Task<LoginResult> LoginAsync(
+             string username,
+             string password)
         {
             try
             {
@@ -45,35 +55,44 @@ namespace ParcelManager.Services
                     password
                 };
 
-                var json = JsonSerializer.Serialize(loginData);
+                var json =
+                    JsonSerializer.Serialize(loginData);
 
-                using var content = new StringContent(
-                    json,
-                    Encoding.UTF8,
-                    "application/json");
+                using var content =
+                    new StringContent(
+                        json,
+                        Encoding.UTF8,
+                        "application/json");
 
-                using var request = new HttpRequestMessage(
-                    HttpMethod.Post,
-                    LoginUrl)
-                {
-                    Content = content,
-                    Version = new Version(1, 1),
-                    VersionPolicy =
-                        HttpVersionPolicy.RequestVersionExact
-                };
+                string baseUrl =
+                    _configService.Config.BaseUrl.TrimEnd('/');
+
+                string loginUrl =
+                    $"{baseUrl}/api/auth/login/";
+
+                using var request =
+                    new HttpRequestMessage(
+                        HttpMethod.Post,
+                        loginUrl)
+                    {
+                        Content = content,
+                        Version = new Version(1, 1),
+                        VersionPolicy =
+                            HttpVersionPolicy.RequestVersionExact
+                    };
 
                 using var response =
                     await _httpClient.SendAsync(request);
 
+                if (response.StatusCode ==
+                    System.Net.HttpStatusCode.Unauthorized)
+                {
+                    return LoginResult.InvalidCredentials;
+                }
+
                 if (!response.IsSuccessStatusCode)
                 {
-                    MessageBox.Show(
-                        "Invalid username or password.",
-                        "TopMap Solutions",
-                        MessageBoxButton.OK,
-                        MessageBoxImage.Error);
-
-                    return false;
+                    return LoginResult.ServerUnavailable;
                 }
 
                 var responseBody =
@@ -82,81 +101,43 @@ namespace ParcelManager.Services
                 var result =
                     JsonSerializer.Deserialize<TokenResponse>(
                         responseBody,
-                        new JsonSerializerOptions
-                        {
-                            PropertyNameCaseInsensitive = true
-                        });
+                        _jsonOptions);
 
                 if (result == null ||
                     string.IsNullOrWhiteSpace(result.Access))
                 {
-                    MessageBox.Show(
-                        "Login failed. Please try again.",
-                        "TopMap Solutions",
-                        MessageBoxButton.OK,
-                        MessageBoxImage.Error);
-
-                    return false;
+                    return LoginResult.Failed;
                 }
 
                 _accessToken = result.Access;
                 _refreshToken = result.Refresh;
+                _username = username;
 
-                return true;
+                return LoginResult.Success;
             }
             catch (HttpRequestException)
             {
-                MessageBox.Show(
-                    "Could not connect to the server.",
-                    "TopMap Solutions",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Error);
-
-                return false;
+                return LoginResult.ServerUnavailable;
             }
             catch (TaskCanceledException)
             {
-                MessageBox.Show(
-                    "The request timed out. Please try again.",
-                    "TopMap Solutions",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Error);
-
-                return false;
+                return LoginResult.Timeout;
             }
             catch (Exception)
             {
-                MessageBox.Show(
-                    "An unexpected error occurred. Please try again.",
-                    "TopMap Solutions",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Error);
-
-                return false;
+                return LoginResult.Failed;
             }
         }
-
-        // =========================================================
-        // ACCESS TOKEN
-        // =========================================================
 
         public string? GetAccessToken()
         {
             return _accessToken;
         }
 
-        // =========================================================
-        // REFRESH TOKEN
-        // =========================================================
-
         public string? GetRefreshToken()
         {
             return _refreshToken;
         }
-
-        // =========================================================
-        // ADD JWT AUTHORIZATION
-        // =========================================================
 
         public void AddAuthorizationHeader(
             HttpRequestMessage request)
@@ -172,26 +153,11 @@ namespace ParcelManager.Services
                     _accessToken);
         }
 
-        // =========================================================
-        // LOGOUT
-        // =========================================================
-
         public void Logout()
         {
+            _username = null;
             _accessToken = null;
             _refreshToken = null;
         }
-
-        // =========================================================
-        // JWT RESPONSE
-        // =========================================================
-
-        private sealed class TokenResponse
-        {
-            public string Access { get; set; } = "";
-
-            public string Refresh { get; set; } = "";
-        }
     }
 }
-
