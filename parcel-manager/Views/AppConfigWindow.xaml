@@ -20,10 +20,6 @@
 		</Grid.RowDefinitions>
 
 
-		<!-- ====================================================== -->
-		<!-- TITLE -->
-		<!-- ====================================================== -->
-
 		<StackPanel
             Orientation="Horizontal"
             VerticalAlignment="Center">
@@ -56,10 +52,6 @@
 		</StackPanel>
 
 
-		<!-- ====================================================== -->
-		<!-- SERVER URL -->
-		<!-- ====================================================== -->
-
 		<StackPanel
             Grid.Row="1"
             Margin="0,24,0,0">
@@ -84,10 +76,6 @@
 
 		</StackPanel>
 
-
-		<!-- ====================================================== -->
-		<!-- AUTOCAD CORE CONSOLE -->
-		<!-- ====================================================== -->
 
 		<StackPanel
             Grid.Row="2"
@@ -115,15 +103,9 @@
 		</StackPanel>
 
 
-		<!-- ====================================================== -->
-		<!-- BUTTONS -->
-		<!-- ====================================================== -->
-
 		<Grid
             Grid.Row="4"
             Margin="0,20,0,4">
-
-			<!-- RESET -->
 
 			<Button
                 Content="Reset to Default"
@@ -132,8 +114,6 @@
                 HorizontalAlignment="Left"
                 Click="Reset_Click" />
 
-
-			<!-- CANCEL / SAVE -->
 
 			<StackPanel
                 Orientation="Horizontal"

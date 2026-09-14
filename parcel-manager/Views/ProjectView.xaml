@@ -15,10 +15,6 @@
         </Grid.RowDefinitions>
 
 
-        <!-- ===================================================== -->
-        <!-- PROJECT ROOT -->
-        <!-- ===================================================== -->
-
         <Border
             Grid.Row="0"
             Background="White"
@@ -33,8 +29,6 @@
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
-
-                <!-- ROOT INFORMATION -->
 
                 <StackPanel>
 
@@ -64,8 +58,6 @@
                 </StackPanel>
 
 
-                <!-- BROWSE -->
-
                 <Button
                     Grid.Column="1"
                     Content="Browse"
@@ -81,10 +73,6 @@
         </Border>
 
 
-        <!-- ===================================================== -->
-        <!-- BARANGAY DRAWINGS -->
-        <!-- ===================================================== -->
-
         <Border
             Grid.Row="2"
             Background="White"
@@ -94,42 +82,22 @@
             <Grid Margin="20">
 
                 <Grid.RowDefinitions>
-
-                    <!-- TITLE + ACTIONS -->
                     <RowDefinition Height="Auto" />
-
-                    <!-- TABLE HEADER -->
                     <RowDefinition Height="Auto" />
-
-                    <!-- LIST -->
                     <RowDefinition Height="*" />
-
                 </Grid.RowDefinitions>
 
-
-                <!-- ================================================= -->
-                <!-- TITLE + ACTION BUTTONS -->
-                <!-- ================================================= -->
 
                 <Grid
                     Grid.Row="0"
                     Margin="0,0,0,15">
 
                     <Grid.ColumnDefinitions>
-
-                        <!-- TITLE -->
                         <ColumnDefinition Width="*" />
-
-                        <!-- VIEW MASTER -->
                         <ColumnDefinition Width="Auto" />
-
-                        <!-- SYNC -->
                         <ColumnDefinition Width="Auto" />
-
                     </Grid.ColumnDefinitions>
 
-
-                    <!-- TITLE -->
 
                     <StackPanel
                         Grid.Column="0">
@@ -148,10 +116,6 @@
 
                     </StackPanel>
 
-
-                    <!-- ================================================= -->
-                    <!-- VIEW MASTER -->
-                    <!-- ================================================= -->
 
                     <Button
                         Grid.Column="1"
@@ -172,11 +136,6 @@
                             HorizontalAlignment="Center" />
 
                     </Button>
-
-
-                    <!-- ================================================= -->
-                    <!-- SYNC -->
-                    <!-- ================================================= -->
 
                     <Button
                         Grid.Column="2"
@@ -200,11 +159,6 @@
 
                 </Grid>
 
-
-                <!-- ================================================= -->
-                <!-- TABLE HEADER -->
-                <!-- ================================================= -->
-
                 <Border
                     Grid.Row="1"
                     Background="#F8F9FA"
@@ -220,23 +174,14 @@
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
 
-
-                        <!-- BARANGAY -->
-
                         <TextBlock
                             Text="BARANGAY"
                             FontSize="10"
                             FontWeight="SemiBold"
                             Foreground="#888888" />
 
-
-                        <!-- MIDDLE COLUMN -->
-
                         <TextBlock
                             Grid.Column="1" />
-
-
-                        <!-- STATUS -->
 
                         <TextBlock
                             Grid.Column="2"
@@ -250,11 +195,6 @@
 
                 </Border>
 
-
-                <!-- ================================================= -->
-                <!-- BARANGAY LIST -->
-                <!-- ================================================= -->
-
                 <ListBox
                     x:Name="BarangayList"
                     Grid.Row="2"
@@ -262,11 +202,6 @@
                     Background="Transparent"
                     ScrollViewer.VerticalScrollBarVisibility="Auto"
                     MouseDoubleClick="BarangayList_MouseDoubleClick">
-
-
-                    <!-- ================================================= -->
-                    <!-- ITEM STYLE -->
-                    <!-- ================================================= -->
 
                     <ListBox.ItemContainerStyle>
 
@@ -300,8 +235,6 @@
 
                             <Style.Triggers>
 
-                                <!-- HOVER -->
-
                                 <Trigger
                                     Property="IsMouseOver"
                                     Value="True">
@@ -312,8 +245,6 @@
 
                                 </Trigger>
 
-
-                                <!-- SELECTED -->
 
                                 <Trigger
                                     Property="IsSelected"
@@ -330,11 +261,6 @@
                         </Style>
 
                     </ListBox.ItemContainerStyle>
-
-
-                    <!-- ================================================= -->
-                    <!-- ITEM TEMPLATE -->
-                    <!-- ================================================= -->
 
                     <ListBox.ItemTemplate>
 
@@ -357,11 +283,6 @@
 
                                     </Grid.ColumnDefinitions>
 
-
-                                    <!-- ================================================= -->
-                                    <!-- BARANGAY NAME -->
-                                    <!-- ================================================= -->
-
                                     <TextBlock
                                         Grid.Column="0"
                                         Text="{Binding Name}"
@@ -370,18 +291,9 @@
                                         Foreground="#222222"
                                         VerticalAlignment="Center" />
 
-
-                                    <!-- ================================================= -->
-                                    <!-- MIDDLE COLUMN -->
-                                    <!-- ================================================= -->
-
                                     <TextBlock
                                         Grid.Column="1" />
 
-
-                                    <!-- ================================================= -->
-                                    <!-- STATUS -->
-                                    <!-- ================================================= -->
 
                                     <Border
                                         Grid.Column="2"

@@ -17,8 +17,6 @@
             HorizontalAlignment="Center"
             VerticalAlignment="Center">
 
-			<!-- LOGO / BRAND -->
-
 			<StackPanel
                 HorizontalAlignment="Center"
                 Margin="0,0,0,30">
@@ -45,9 +43,6 @@
 
 			</StackPanel>
 
-
-			<!-- USERNAME -->
-
 			<TextBlock
                 Text="Username"
                 FontSize="12"
@@ -62,9 +57,6 @@
                 VerticalContentAlignment="Center"
                 Margin="0,0,0,16" />
 
-
-			<!-- PASSWORD -->
-
 			<TextBlock
                 Text="Password"
                 FontSize="12"
@@ -76,15 +68,11 @@
                 Height="36"
                 Margin="0,0,0,10">
 
-				<!-- HIDDEN PASSWORD -->
-
 				<PasswordBox
                     x:Name="PasswordBox"
                     Height="36"
                     Padding="10,0,40,0"
                     VerticalContentAlignment="Center" />
-
-				<!-- VISIBLE PASSWORD -->
 
 				<TextBox
                     x:Name="VisiblePasswordBox"
@@ -92,8 +80,6 @@
                     Padding="10,0,40,0"
                     VerticalContentAlignment="Center"
                     Visibility="Collapsed" />
-
-				<!-- SHOW / HIDE BUTTON -->
 
 				<Button
                     x:Name="ShowPasswordButton"
@@ -112,9 +98,6 @@
 
 			</Grid>
 
-
-			<!-- ERROR -->
-
 			<TextBlock
                 x:Name="ErrorText"
                 Text=""
@@ -123,8 +106,6 @@
                 TextWrapping="Wrap"
                 Margin="0,0,0,12" />
 
-
-			<!-- LOGIN -->
 
 			<Button
                 x:Name="LoginButton"
@@ -136,8 +117,6 @@
                 Cursor="Hand"
                 Click="Login_Click" />
 
-
-			<!-- APPLICATION CONFIGURATION -->
 
 			<TextBlock
                 Text="Application Configuration"

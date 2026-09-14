@@ -30,8 +30,9 @@ namespace ParcelManager.Services
                 new DxfService(
                     _configService);
 
-            _uploadService =
-                new UploadService();
+            _uploadService = new UploadService(
+                _httpClient,
+                _configService);
         }
 
         // ============================================================
@@ -111,13 +112,15 @@ namespace ParcelManager.Services
             }
 
             using FileStream stream =
-                File.OpenRead(filePath);
+                File.OpenRead(
+                    filePath);
 
             byte[] hash =
                 SHA256.HashData(
                     stream);
 
-            return Convert.ToHexString(hash)
+            return Convert.ToHexString(
+                hash)
                 .ToLowerInvariant();
         }
 
@@ -134,8 +137,6 @@ namespace ParcelManager.Services
         //
         // Existing file with different SHA:
         //     DOWNLOAD
-        //
-        // This also works when the project folder is completely empty.
         // ============================================================
 
         public List<ManifestFile> GetFilesToSync(
@@ -204,12 +205,6 @@ namespace ParcelManager.Services
 
         // ============================================================
         // BARANGAY FILENAME PART
-        //
-        // Canocotan
-        //     CANOCOTAN
-        //
-        // Magugpo Poblacion
-        //     MAGUGPO-POBLACION
         // ============================================================
 
         private string GetBarangayFilenamePart(
@@ -237,14 +232,6 @@ namespace ParcelManager.Services
         // Structure:
         //
         // NN-BARANGAY-YYYY-vN.dwg
-        //
-        // Example:
-        //
-        // 03-CANOCOTAN-2026-v12.dwg
-        // ^^ barangay number
-        //    ^^^^^^^^^ barangay
-        //               ^^^^ year
-        //                    ^^ version
         // ============================================================
 
         private bool TryGetCanonicalDrawingVersion(
@@ -265,11 +252,7 @@ namespace ParcelManager.Services
             }
 
             // --------------------------------------------------------
-            // Find first dash.
-            //
-            // Canonical filename must begin with exactly:
-            //
-            // NN-
+            // Canonical filename must begin with NN-
             // --------------------------------------------------------
 
             int firstDash =
@@ -391,16 +374,6 @@ namespace ParcelManager.Services
 
         // ============================================================
         // FIND EXISTING BARANGAY DRAWING
-        //
-        // Finds the latest canonical version already on disk.
-        //
-        // Example:
-        //
-        // 03-CANOCOTAN-2026-v10.dwg
-        // 03-CANOCOTAN-2026-v11.dwg
-        // 03-CANOCOTAN-2026-v12.dwg
-        //
-        // Returns v12.
         // ============================================================
 
         private string? FindExistingBarangayDrawing(
@@ -445,22 +418,6 @@ namespace ParcelManager.Services
 
         // ============================================================
         // DELETE OLD BARANGAY DRAWINGS
-        //
-        // Example:
-        //
-        // Existing:
-        //
-        // 03-CANOCOTAN-2026-v10.dwg
-        // 03-CANOCOTAN-2026-v11.dwg
-        // 03-CANOCOTAN-2026-v12.dwg
-        //
-        // Download:
-        //
-        // 03-CANOCOTAN-2026-v13.dwg
-        //
-        // Result:
-        //
-        // 03-CANOCOTAN-2026-v13.dwg
         //
         // MASTER.dwg is never touched.
         // Other barangays are never touched.
@@ -747,6 +704,139 @@ namespace ParcelManager.Services
         }
 
         // ============================================================
+        // CLEAN LOCAL DWGs AGAINST SERVER MANIFEST
+        //
+        // The refreshed server manifest is the source of truth.
+        //
+        // KEEP local file only when:
+        //
+        //     filename exists in manifest
+        //     AND
+        //     SHA-256 matches
+        //
+        // DELETE when:
+        //
+        //     filename is NOT in manifest
+        //
+        // OR:
+        //
+        //     filename exists but SHA is different
+        //
+        // MASTER.dwg is NEVER deleted.
+        // ============================================================
+
+        private int CleanupLocalDwgsAgainstManifest(
+            string projectFolder,
+            Manifest manifest)
+        {
+            if (!Directory.Exists(
+                projectFolder))
+            {
+                return 0;
+            }
+
+            Dictionary<string, ManifestFile> manifestFiles =
+                manifest.Files
+                    .Where(
+                        file =>
+                            !string.IsNullOrWhiteSpace(
+                                file.Filename))
+                    .GroupBy(
+                        file =>
+                            file.Filename,
+                        StringComparer.OrdinalIgnoreCase)
+                    .ToDictionary(
+                        group =>
+                            group.Key,
+                        group =>
+                            group.First(),
+                        StringComparer.OrdinalIgnoreCase);
+
+            int deletedCount = 0;
+
+            foreach (string dwgPath in GetLocalDwgs(
+                projectFolder))
+            {
+                string filename =
+                    Path.GetFileName(
+                        dwgPath);
+
+                // ----------------------------------------------------
+                // Safety.
+                //
+                // GetLocalDwgs already excludes MASTER.dwg.
+                // ----------------------------------------------------
+
+                if (string.Equals(
+                    filename,
+                    "MASTER.dwg",
+                    StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                // ----------------------------------------------------
+                // FILE NOT IN MANIFEST
+                //
+                // Example:
+                //
+                // 05-CANOCOTAN-2026-v15 - Copy.dwg
+                //
+                // Server doesn't know this filename.
+                //
+                // DELETE.
+                // ----------------------------------------------------
+
+                if (!manifestFiles.TryGetValue(
+                    filename,
+                    out ManifestFile? serverFile))
+                {
+                    File.Delete(
+                        dwgPath);
+
+                    deletedCount++;
+
+                    continue;
+                }
+
+                // ----------------------------------------------------
+                // FILE EXISTS IN MANIFEST.
+                //
+                // Compare SHA.
+                // ----------------------------------------------------
+
+                string localSha =
+                    CalculateSha256(
+                        dwgPath);
+
+                bool hashesMatch =
+                    string.Equals(
+                        localSha,
+                        serverFile.Sha256,
+                        StringComparison.OrdinalIgnoreCase);
+
+                // ----------------------------------------------------
+                // SAME FILENAME BUT DIFFERENT SHA
+                //
+                // Delete local version.
+                //
+                // GetFilesToSync() will then download the correct
+                // server version.
+                // ----------------------------------------------------
+
+                if (!hashesMatch)
+                {
+                    File.Delete(
+                        dwgPath);
+
+                    deletedCount++;
+                }
+            }
+
+            return deletedCount;
+        }
+
+        // ============================================================
         // UPLOAD DETECTION
         //
         // If a local DWG:
@@ -898,15 +988,17 @@ namespace ParcelManager.Services
         //
         // 4. Refresh server manifest
         //
-        // 5. Find missing/changed server files
+        // 5. CLEAN LOCAL DWGs AGAINST MANIFEST
         //
-        // 6. Download them
+        // 6. Find missing/changed server files
         //
-        // 7. Delete old versions
+        // 7. Download them
         //
-        // 8. Install new version
+        // 8. Delete old versions
         //
-        // 9. Generate DXFs again
+        // 9. Install new version
+        //
+        // 10. Generate DXFs again
         //
         // Empty folder is valid.
         // Missing local files are valid.
@@ -934,7 +1026,7 @@ namespace ParcelManager.Services
             // ========================================================
             // 2. GENERATE DXFs
             //
-            // If the folder is empty, this should simply result in
+            // If the folder is empty, this simply results in
             // nothing to convert.
             // ========================================================
 
@@ -945,6 +1037,12 @@ namespace ParcelManager.Services
             // 3. UPLOAD LOCAL CHANGES
             //
             // If there are no local DWGs, this returns 0.
+            //
+            // IMPORTANT:
+            //
+            // Nothing is cleaned here.
+            //
+            // We first let the local files upload successfully.
             // ========================================================
 
             await UploadLocalChangesAsync(
@@ -954,32 +1052,60 @@ namespace ParcelManager.Services
             // ========================================================
             // 4. REFRESH MANIFEST
             //
-            // Important because an upload may have created a new
-            // server version.
+            // IMPORTANT:
+            //
+            // The first manifest may be outdated because an upload
+            // may have created a new server version.
+            //
+            // The second manifest becomes our source of truth.
             // ========================================================
 
             manifest =
                 await DownloadManifestAsync();
 
             // ========================================================
-            // 5. DETERMINE DOWNLOADS
+            // 5. CLEAN LOCAL DWGs AGAINST REFRESHED MANIFEST
             //
-            // Empty folder:
+            // KEEP only when:
             //
-            //     Every server file is missing.
-            //     Therefore every server file is downloaded.
+            //     filename exists in manifest
+            //     AND SHA matches
             //
-            // Existing folder:
+            // DELETE when:
             //
-            //     Same SHA -> skip
-            //     Missing -> download
-            //     Different SHA -> download
+            //     filename does not exist in manifest
+            //
+            // OR:
+            //
+            //     SHA does not match
+            //
+            // MASTER.dwg is always preserved.
+            // ========================================================
+
+            CleanupLocalDwgsAgainstManifest(
+                projectFolder,
+                manifest);
+
+            // ========================================================
+            // 6. DETERMINE DOWNLOADS
+            //
+            // After cleanup:
+            //
+            // Missing files -> DOWNLOAD
+            //
+            // Matching files -> SKIP
+            //
+            // Incorrect SHA -> was deleted above -> DOWNLOAD
             // ========================================================
 
             List<ManifestFile> filesToSync =
                 GetFilesToSync(
                     manifest,
                     projectFolder);
+
+            // ========================================================
+            // NOTHING TO DOWNLOAD
+            // ========================================================
 
             if (filesToSync.Count == 0)
             {
@@ -1076,14 +1202,14 @@ namespace ParcelManager.Services
             }
 
             // ========================================================
-            // 6. GENERATE DXFs AGAIN
+            // 7. GENERATE DXFs AGAIN
             // ========================================================
 
             await _dxfService.ConvertAllAsync(
                 projectFolder);
 
             // ========================================================
-            // 7. RETURN NUMBER OF DOWNLOADED FILES
+            // 8. RETURN NUMBER OF DOWNLOADED FILES
             // ========================================================
 
             return syncedCount;
