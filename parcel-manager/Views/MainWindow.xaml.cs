@@ -1,6 +1,4 @@
-﻿using System;
-using System.Net.Http;
-using System.Windows;
+﻿using System.Windows;
 
 using ParcelManager.Services;
 
@@ -14,19 +12,22 @@ namespace ParcelManager.Views
         private readonly SyncService _syncService;
         private readonly DxfService _dxfTestService;
 
-        public MainWindow()
+        public MainWindow(AuthService authService)
         {
             InitializeComponent();
 
-            _authService = new AuthService();
+            _authService = authService;
+
             _projectService = new ProjectService();
             _drawingService = new DrawingService();
             _syncService = new SyncService();
             _dxfTestService = new DxfService();
 
+            TopBar.TestViewRequested += ShowTestView;
+            TopBar.LogoutRequested += Logout;
+
             ShowProjectView();
         }
-
 
         // ============================================================
         // VIEW NAVIGATION
@@ -40,35 +41,27 @@ namespace ParcelManager.Views
                 _syncService);
         }
 
-
         private void ShowTestView()
         {
             MainContent.Content = new TestView(
                 ShowProjectView);
         }
 
-
         // ============================================================
-        // TEST VIEW
-        // ============================================================
-
-        private void TestView_Click(
-            object sender,
-            RoutedEventArgs e)
-        {
-            ShowTestView();
-        }
-
-
-        // ============================================================
-        // LOGOUT
+        // AUTH
         // ============================================================
 
-        private void Logout_Click(
-            object sender,
-            RoutedEventArgs e)
+        private void Logout()
         {
             _authService.Logout();
+
+            var loginWindow = new LoginWindow();
+
+            Application.Current.MainWindow = loginWindow;
+
+            loginWindow.Show();
+
+            Close();
         }
     }
 }
