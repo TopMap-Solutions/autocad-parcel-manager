@@ -7,11 +7,17 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
+
+    <ApplicationIcon>Assets\topmap-logo.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="AutoCAD.NET" Version="26.0.0" />
     <PackageReference Include="AutoCAD.NET.Core" Version="26.0.0" />
+  </ItemGroup>
+  
+  <ItemGroup>
+	<Resource Include="Assets\topmap-logo.png" />
   </ItemGroup>
 
 </Project>

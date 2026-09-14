@@ -1,0 +1,135 @@
+<Window
+    x:Class="ParcelManager.Views.LoginWindow"
+    Icon="/Assets/topmap-logo.png"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="Login | Land Parcel Manager"
+    Width="420"
+    Height="500"
+    ResizeMode="NoResize"
+    WindowStartupLocation="CenterScreen"
+    Background="White">
+
+	<Grid>
+
+		<StackPanel
+            Width="340"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center">
+
+			<StackPanel
+                HorizontalAlignment="Center"
+                Margin="0,0,0,30">
+
+				<Image
+                    Source="/Assets/topmap-logo.png"
+                    Width="55"
+                    Height="55"
+                    Margin="0,0,0,12" />
+
+				<TextBlock
+                    Text="Land Parcel Manager"
+                    FontSize="20"
+                    FontWeight="SemiBold"
+                    HorizontalAlignment="Center"
+                    Foreground="#222222" />
+
+				<TextBlock
+                    Text="Powered by TopMap Solutions"
+                    FontSize="11"
+                    Foreground="#777777"
+                    HorizontalAlignment="Center"
+                    Margin="0,4,0,0" />
+
+			</StackPanel>
+
+			<TextBlock
+                Text="Username"
+                FontSize="12"
+                FontWeight="SemiBold"
+                Foreground="#444444"
+                Margin="0,0,0,6" />
+
+			<TextBox
+                x:Name="UsernameTextBox"
+                Height="36"
+                Padding="10,0"
+                VerticalContentAlignment="Center"
+                Margin="0,0,0,16" />
+
+			<TextBlock
+                Text="Password"
+                FontSize="12"
+                FontWeight="SemiBold"
+                Foreground="#444444"
+                Margin="0,0,0,6" />
+
+			<Grid
+                Height="36"
+                Margin="0,0,0,10">
+
+				<PasswordBox
+                    x:Name="PasswordBox"
+                    Height="36"
+                    Padding="10,0,40,0"
+                    VerticalContentAlignment="Center" />
+
+				<TextBox
+                    x:Name="VisiblePasswordBox"
+                    Height="36"
+                    Padding="10,0,40,0"
+                    VerticalContentAlignment="Center"
+                    Visibility="Collapsed" />
+
+				<Button
+                    x:Name="ShowPasswordButton"
+                    Width="32"
+                    Height="32"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Center"
+                    Margin="0,0,2,0"
+                    Content="◉"
+                    FontSize="13"
+                    Background="Transparent"
+                    Foreground="#777777"
+                    BorderThickness="0"
+                    Cursor="Hand"
+                    Click="ShowPassword_Click" />
+
+			</Grid>
+
+			<TextBlock
+                x:Name="ErrorText"
+                Text=""
+                Foreground="#C62828"
+                FontSize="11"
+                TextWrapping="Wrap"
+                Margin="0,0,0,12" />
+
+
+			<Button
+                x:Name="LoginButton"
+                Content="Login"
+                Height="38"
+                Background="#222222"
+                Foreground="White"
+                BorderThickness="0"
+                Cursor="Hand"
+                Click="Login_Click" />
+
+
+			<TextBlock
+                Text="Application Configuration"
+                Margin="0,12,0,0"
+                HorizontalAlignment="Center"
+                Foreground="#555555"
+                FontSize="11"
+                TextDecorations="Underline"
+                Cursor="Hand"
+                MouseLeftButtonUp="AppConfig_Click" />
+
+		</StackPanel>
+
+	</Grid>
+
+</Window>

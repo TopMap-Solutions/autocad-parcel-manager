@@ -5,14 +5,20 @@ using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Threading.Tasks;
+
 using ParcelManager.Models;
 
 namespace ParcelManager.Services
 {
     public class DxfService
     {
-        private const string CoreConsolePath =
-            @"C:\Program Files\Autodesk\AutoCAD 2027\accoreconsole.exe";
+        private readonly ConfigService _configService;
+
+        public DxfService(
+            ConfigService configService)
+        {
+            _configService = configService;
+        }
 
         public async Task<DxfConversionResult> ConvertAllAsync(
             string rootFolder)
@@ -20,28 +26,26 @@ namespace ParcelManager.Services
             var result =
                 new DxfConversionResult();
 
-
             if (!Directory.Exists(rootFolder))
             {
                 return result;
             }
 
+            string coreConsolePath =
+                _configService.Config.CoreConsolePath;
 
-            if (!File.Exists(CoreConsolePath))
+            if (!File.Exists(coreConsolePath))
             {
                 return result;
             }
-
 
             string dxfFolder =
                 Path.Combine(
                     rootFolder,
                     "DXF");
 
-
             Directory.CreateDirectory(
                 dxfFolder);
-
 
             string[] dwgFiles =
                 Directory.GetFiles(
@@ -54,11 +58,9 @@ namespace ParcelManager.Services
                         StringComparison.OrdinalIgnoreCase))
                 .ToArray();
 
-
             DeleteOrphanDxfs(
                 dxfFolder,
                 dwgFiles);
-
 
             foreach (string dwgPath in dwgFiles)
             {
@@ -66,24 +68,20 @@ namespace ParcelManager.Services
                     Path.GetFileNameWithoutExtension(
                         dwgPath);
 
-
                 if (string.IsNullOrWhiteSpace(
                     fileName))
                 {
                     continue;
                 }
 
-
                 string dxfPath =
                     Path.Combine(
                         dxfFolder,
                         fileName + ".dxf");
 
-
                 string metadataPath =
                     GetMetadataPath(
                         dxfPath);
-
 
                 try
                 {
@@ -91,18 +89,15 @@ namespace ParcelManager.Services
                         dxfFolder,
                         fileName);
 
-
                     string dwgSha =
                         CalculateSha256(
                             dwgPath);
-
 
                     bool dxfIsCurrent =
                         IsDxfCurrent(
                             dxfPath,
                             metadataPath,
                             dwgSha);
-
 
                     if (dxfIsCurrent)
                     {
@@ -111,20 +106,17 @@ namespace ParcelManager.Services
                         continue;
                     }
 
-
                     DeleteIfExists(
                         dxfPath);
-
 
                     DeleteIfExists(
                         metadataPath);
 
-
                     bool success =
                         await ConvertSingleAsync(
                             dwgPath,
-                            dxfPath);
-
+                            dxfPath,
+                            coreConsolePath);
 
                     if (!success)
                     {
@@ -133,11 +125,9 @@ namespace ParcelManager.Services
                         continue;
                     }
 
-
                     WriteDxfMetadata(
                         metadataPath,
                         dwgSha);
-
 
                     result.Success++;
                 }
@@ -147,24 +137,20 @@ namespace ParcelManager.Services
                 }
             }
 
-
             result.Message =
                 $"DXF conversion complete.\n\n" +
                 $"Converted: {result.Success}\n" +
                 $"Skipped:   {result.Skipped}\n" +
                 $"Failed:    {result.Failed}";
 
-
             return result;
         }
-
 
         private string GetMetadataPath(
             string dxfPath)
         {
             return dxfPath + ".sha256";
         }
-
 
         private bool IsDxfCurrent(
             string dxfPath,
@@ -176,25 +162,21 @@ namespace ParcelManager.Services
                 return false;
             }
 
-
             if (!File.Exists(metadataPath))
             {
                 return false;
             }
-
 
             string storedSha =
                 File.ReadAllText(
                     metadataPath)
                 .Trim();
 
-
             return string.Equals(
                 storedSha,
                 dwgSha,
                 StringComparison.OrdinalIgnoreCase);
         }
-
 
         private void WriteDxfMetadata(
             string metadataPath,
@@ -205,7 +187,6 @@ namespace ParcelManager.Services
                 dwgSha);
         }
 
-
         private void DeleteIfExists(
             string path)
         {
@@ -213,7 +194,6 @@ namespace ParcelManager.Services
             {
                 return;
             }
-
 
             try
             {
@@ -224,7 +204,6 @@ namespace ParcelManager.Services
             }
         }
 
-
         private void DeleteOrphanDxfs(
             string dxfFolder,
             IEnumerable<string> dwgFiles)
@@ -233,13 +212,11 @@ namespace ParcelManager.Services
                 new HashSet<string>(
                     StringComparer.OrdinalIgnoreCase);
 
-
             foreach (string dwgPath in dwgFiles)
             {
                 string? fileName =
                     Path.GetFileNameWithoutExtension(
                         dwgPath);
-
 
                 if (string.IsNullOrWhiteSpace(
                     fileName))
@@ -247,11 +224,9 @@ namespace ParcelManager.Services
                     continue;
                 }
 
-
                 currentDwgNames.Add(
                     fileName);
             }
-
 
             string[] existingDxfs =
                 Directory.GetFiles(
@@ -259,13 +234,11 @@ namespace ParcelManager.Services
                     "*.dxf",
                     SearchOption.TopDirectoryOnly);
 
-
             foreach (string dxfPath in existingDxfs)
             {
                 string? dxfFileName =
                     Path.GetFileNameWithoutExtension(
                         dxfPath);
-
 
                 if (string.IsNullOrWhiteSpace(
                     dxfFileName))
@@ -273,24 +246,20 @@ namespace ParcelManager.Services
                     continue;
                 }
 
-
                 if (currentDwgNames.Contains(
                     dxfFileName))
                 {
                     continue;
                 }
 
-
                 DeleteIfExists(
                     dxfPath);
-
 
                 DeleteIfExists(
                     GetMetadataPath(
                         dxfPath));
             }
         }
-
 
         private void DeleteOldVersionDxfs(
             string dxfFolder,
@@ -300,13 +269,11 @@ namespace ParcelManager.Services
                 GetBarangayName(
                     currentFileName);
 
-
             string[] existingDxfs =
                 Directory.GetFiles(
                     dxfFolder,
                     "*.dxf",
                     SearchOption.TopDirectoryOnly);
-
 
             foreach (string dxfPath in existingDxfs)
             {
@@ -314,18 +281,15 @@ namespace ParcelManager.Services
                     Path.GetFileNameWithoutExtension(
                         dxfPath);
 
-
                 if (string.IsNullOrWhiteSpace(
                     existingFileName))
                 {
                     continue;
                 }
 
-
                 string existingBarangay =
                     GetBarangayName(
                         existingFileName);
-
 
                 if (!string.Equals(
                     existingBarangay,
@@ -335,7 +299,6 @@ namespace ParcelManager.Services
                     continue;
                 }
 
-
                 if (string.Equals(
                     existingFileName,
                     currentFileName,
@@ -344,17 +307,14 @@ namespace ParcelManager.Services
                     continue;
                 }
 
-
                 DeleteIfExists(
                     dxfPath);
-
 
                 DeleteIfExists(
                     GetMetadataPath(
                         dxfPath));
             }
         }
-
 
         private string GetBarangayName(
             string fileName)
@@ -364,13 +324,11 @@ namespace ParcelManager.Services
                     "_v",
                     StringComparison.OrdinalIgnoreCase);
 
-
             if (versionIndex >= 0)
             {
                 string version =
                     fileName.Substring(
                         versionIndex + 2);
-
 
                 if (int.TryParse(
                     version,
@@ -382,19 +340,17 @@ namespace ParcelManager.Services
                 }
             }
 
-
             return fileName;
         }
 
-
         private async Task<bool> ConvertSingleAsync(
             string dwgPath,
-            string dxfPath)
+            string dxfPath,
+            string coreConsolePath)
         {
             string? folder =
                 Path.GetDirectoryName(
                     dxfPath);
-
 
             if (string.IsNullOrWhiteSpace(
                 folder))
@@ -402,12 +358,10 @@ namespace ParcelManager.Services
                 return false;
             }
 
-
             string scriptPath =
                 Path.Combine(
                     folder,
                     "__dxf_test.scr");
-
 
             try
             {
@@ -420,16 +374,14 @@ namespace ParcelManager.Services
                     $"16\n" +
                     $"_.QUIT\n");
 
-
                 using var process =
                     new Process();
-
 
                 process.StartInfo =
                     new ProcessStartInfo
                     {
                         FileName =
-                            CoreConsolePath,
+                            coreConsolePath,
 
                         Arguments =
                             $"\"{dwgPath}\" " +
@@ -445,11 +397,9 @@ namespace ParcelManager.Services
                             true
                     };
 
-
                 process.Start();
 
                 await process.WaitForExitAsync();
-
 
                 return File.Exists(
                     dxfPath);
@@ -461,18 +411,15 @@ namespace ParcelManager.Services
             }
         }
 
-
         private string CalculateSha256(
             string filePath)
         {
             using FileStream stream =
                 File.OpenRead(filePath);
 
-
             byte[] hash =
                 SHA256.HashData(
                     stream);
-
 
             return Convert.ToHexString(
                 hash)

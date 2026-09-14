@@ -13,30 +13,46 @@ namespace ParcelManager.Services
     public class SyncService
     {
         private readonly HttpClient _httpClient;
+        private readonly ConfigService _configService;
         private readonly DxfService _dxfService;
         private readonly UploadService _uploadService;
 
-
-        private const string ManifestUrl =
-            "http://127.0.0.1:8000/api/parcels/sync/manifest/";
-
-
-        private const string DownloadUrl =
-            "http://127.0.0.1:8000/api/parcels/sync/download/";
-
-
-        public SyncService()
+        public SyncService(
+            ConfigService configService)
         {
+            _configService =
+                configService;
+
             _httpClient =
                 new HttpClient();
 
             _dxfService =
-                new DxfService();
+                new DxfService(
+                    _configService);
 
-            _uploadService =
-                new UploadService();
+            _uploadService = new UploadService(
+                _httpClient,
+                _configService);
         }
 
+        // ============================================================
+        // BASE URL
+        // ============================================================
+
+        private string GetBaseUrl()
+        {
+            string baseUrl =
+                _configService.Config.BaseUrl;
+
+            if (string.IsNullOrWhiteSpace(
+                baseUrl))
+            {
+                throw new InvalidOperationException(
+                    "The application server URL is not configured.");
+            }
+
+            return baseUrl.TrimEnd('/');
+        }
 
         // ============================================================
         // MANIFEST
@@ -44,30 +60,32 @@ namespace ParcelManager.Services
 
         public async Task<Manifest> DownloadManifestAsync()
         {
+            string baseUrl =
+                GetBaseUrl();
+
+            string manifestUrl =
+                $"{baseUrl}/api/parcels/sync/manifest/";
+
             using HttpResponseMessage response =
                 await _httpClient.GetAsync(
-                    ManifestUrl);
-
+                    manifestUrl);
 
             string responseBody =
                 await response.Content.ReadAsStringAsync();
-
 
             if (!response.IsSuccessStatusCode)
             {
                 throw new HttpRequestException(
                     $"Manifest request failed.\n\n" +
-                    $"URL: {ManifestUrl}\n" +
+                    $"URL: {manifestUrl}\n" +
                     $"Status: {(int)response.StatusCode} " +
                     $"{response.StatusCode}\n\n" +
                     $"Response:\n{responseBody}");
             }
 
-
             Manifest? manifest =
                 System.Text.Json.JsonSerializer.Deserialize<Manifest>(
                     responseBody);
-
 
             if (manifest == null)
             {
@@ -75,10 +93,8 @@ namespace ParcelManager.Services
                     "The server returned an empty manifest.");
             }
 
-
             return manifest;
         }
-
 
         // ============================================================
         // SHA-256
@@ -87,116 +103,83 @@ namespace ParcelManager.Services
         public string CalculateSha256(
             string filePath)
         {
-            if (!File.Exists(filePath))
+            if (!File.Exists(
+                filePath))
             {
                 throw new FileNotFoundException(
                     "The file was not found.",
                     filePath);
             }
 
-
             using FileStream stream =
-                File.OpenRead(filePath);
-
+                File.OpenRead(
+                    filePath);
 
             byte[] hash =
-                SHA256.HashData(stream);
+                SHA256.HashData(
+                    stream);
 
-
-            return Convert.ToHexString(hash)
+            return Convert.ToHexString(
+                hash)
                 .ToLowerInvariant();
         }
-
-
-        // ============================================================
-        // FIND LOCAL BARANGAY
-        // ============================================================
-
-        private Barangay? FindLocalBarangay(
-            string barangayName,
-            IEnumerable<Barangay> localBarangays)
-        {
-            foreach (Barangay barangay in localBarangays)
-            {
-                if (string.Equals(
-                    barangay.Name,
-                    barangayName,
-                    StringComparison.OrdinalIgnoreCase))
-                {
-                    return barangay;
-                }
-            }
-
-
-            return null;
-        }
-
 
         // ============================================================
         // DOWNLOAD DETECTION
         //
-        // Server is downloaded only when the local file does not
-        // already have the same SHA.
+        // The server manifest is the source of truth.
+        //
+        // Missing file:
+        //     DOWNLOAD
+        //
+        // Existing file with same SHA:
+        //     SKIP
+        //
+        // Existing file with different SHA:
+        //     DOWNLOAD
         // ============================================================
 
         public List<ManifestFile> GetFilesToSync(
             Manifest manifest,
-            IEnumerable<Barangay> localBarangays)
+            string projectFolder)
         {
             var filesToSync =
                 new List<ManifestFile>();
 
-
             foreach (ManifestFile file in manifest.Files)
             {
-                Barangay? localBarangay =
-                    FindLocalBarangay(
-                        file.Barangay,
-                        localBarangays);
-
-
-                // ----------------------------------------------------
-                // BARANGAY DOES NOT EXIST LOCALLY
-                // ----------------------------------------------------
-
-                if (localBarangay == null)
+                if (string.IsNullOrWhiteSpace(
+                    file.Filename))
                 {
-                    filesToSync.Add(file);
-
                     continue;
                 }
-
 
                 string localPath =
-                    localBarangay.DrawingPath;
-
+                    Path.Combine(
+                        projectFolder,
+                        file.Filename);
 
                 // ----------------------------------------------------
-                // LOCAL DRAWING DOES NOT EXIST
+                // File does not exist locally.
                 // ----------------------------------------------------
 
-                if (!File.Exists(localPath))
+                if (!File.Exists(
+                    localPath))
                 {
-                    filesToSync.Add(file);
+                    filesToSync.Add(
+                        file);
 
                     continue;
                 }
 
-
                 // ----------------------------------------------------
-                // CALCULATE LOCAL SHA
+                // File exists.
+                // Compare SHA-256.
                 // ----------------------------------------------------
 
                 string localHash =
                     CalculateSha256(
                         localPath);
-
-
-                // ----------------------------------------------------
-                // SAME SHA
-                //
-                // Nothing to download.
-                // ----------------------------------------------------
 
                 bool hashesMatch =
                     string.Equals(
@@ -204,33 +187,240 @@ namespace ParcelManager.Services
                         file.Sha256,
                         StringComparison.OrdinalIgnoreCase);
 
-
                 if (hashesMatch)
                 {
                     continue;
                 }
 
-
                 // ----------------------------------------------------
-                // DIFFERENT SHA
-                //
-                // At this point the caller should already have tried
-                // uploading local changes first.
-                //
-                // If the manifest is already refreshed, a difference
-                // means the server version is still different.
+                // Same filename but different contents.
                 // ----------------------------------------------------
 
-                filesToSync.Add(file);
+                filesToSync.Add(
+                    file);
             }
-
 
             return filesToSync;
         }
 
+        // ============================================================
+        // BARANGAY FILENAME PART
+        // ============================================================
+
+        private string GetBarangayFilenamePart(
+            string barangayName)
+        {
+            return (
+                barangayName ?? string.Empty
+            )
+            .Trim()
+            .ToUpperInvariant()
+            .Replace(
+                " ",
+                "-");
+        }
+
+        // ============================================================
+        // CANONICAL DRAWING PARSER
+        //
+        // Valid:
+        //
+        // 03-CANOCOTAN-2026-v12.dwg
+        // 13-MAGUGPO-POBLACION-2026-v15.dwg
+        // 22-VISAYAN-VILLAGE-2026-v8.dwg
+        //
+        // Structure:
+        //
+        // NN-BARANGAY-YYYY-vN.dwg
+        // ============================================================
+
+        private bool TryGetCanonicalDrawingVersion(
+            string filename,
+            string barangayPart,
+            out int version)
+        {
+            version = -1;
+
+            string name =
+                Path.GetFileNameWithoutExtension(
+                    filename);
+
+            if (string.IsNullOrWhiteSpace(
+                name))
+            {
+                return false;
+            }
+
+            // --------------------------------------------------------
+            // Canonical filename must begin with NN-
+            // --------------------------------------------------------
+
+            int firstDash =
+                name.IndexOf('-');
+
+            if (firstDash != 2)
+            {
+                return false;
+            }
+
+            string numberPart =
+                name.Substring(
+                    0,
+                    2);
+
+            if (!int.TryParse(
+                numberPart,
+                out _))
+            {
+                return false;
+            }
+
+            // --------------------------------------------------------
+            // Expected prefix:
+            //
+            // 03-CANOCOTAN-
+            // --------------------------------------------------------
+
+            string prefix =
+                $"{numberPart}-{barangayPart}-";
+
+            if (!name.StartsWith(
+                prefix,
+                StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            string remaining =
+                name.Substring(
+                    prefix.Length);
+
+            string[] parts =
+                remaining.Split(
+                    '-',
+                    StringSplitOptions.RemoveEmptyEntries);
+
+            // --------------------------------------------------------
+            // Expected:
+            //
+            // 2026
+            // v12
+            // --------------------------------------------------------
+
+            if (parts.Length != 2)
+            {
+                return false;
+            }
+
+            if (!int.TryParse(
+                parts[0],
+                out _))
+            {
+                return false;
+            }
+
+            string versionPart =
+                parts[1];
+
+            if (!versionPart.StartsWith(
+                "v",
+                StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            if (!int.TryParse(
+                versionPart.Substring(1),
+                out version))
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        // ============================================================
+        // CHECK CANONICAL BARANGAY DRAWING
+        // ============================================================
+
+        private bool IsCanonicalBarangayDrawing(
+            string filename,
+            string barangayPart)
+        {
+            return TryGetCanonicalDrawingVersion(
+                filename,
+                barangayPart,
+                out _);
+        }
+
+        // ============================================================
+        // GET VERSION FROM CANONICAL FILENAME
+        // ============================================================
+
+        private int GetDrawingVersion(
+            string filename,
+            string barangayPart)
+        {
+            if (TryGetCanonicalDrawingVersion(
+                filename,
+                barangayPart,
+                out int version))
+            {
+                return version;
+            }
+
+            return -1;
+        }
+
+        // ============================================================
+        // FIND EXISTING BARANGAY DRAWING
+        // ============================================================
+
+        private string? FindExistingBarangayDrawing(
+            string projectFolder,
+            string barangayName)
+        {
+            if (!Directory.Exists(
+                projectFolder))
+            {
+                return null;
+            }
+
+            string barangayPart =
+                GetBarangayFilenamePart(
+                    barangayName);
+
+            var candidates =
+                Directory.GetFiles(
+                    projectFolder,
+                    "*.dwg",
+                    SearchOption.TopDirectoryOnly)
+                .Where(
+                    path =>
+                        !string.Equals(
+                            Path.GetFileName(path),
+                            "MASTER.dwg",
+                            StringComparison.OrdinalIgnoreCase))
+                .Where(
+                    path =>
+                        IsCanonicalBarangayDrawing(
+                            Path.GetFileName(path),
+                            barangayPart))
+                .OrderByDescending(
+                    path =>
+                        GetDrawingVersion(
+                            Path.GetFileName(path),
+                            barangayPart))
+                .ToList();
+
+            return candidates.FirstOrDefault();
+        }
 
         // ============================================================
         // DELETE OLD BARANGAY DRAWINGS
+        //
+        // MASTER.dwg is never touched.
+        // Other barangays are never touched.
         // ============================================================
 
         private void DeleteOldBarangayDrawings(
@@ -238,27 +428,65 @@ namespace ParcelManager.Services
             string barangayName,
             string newFilename)
         {
-            string prefix =
-                $"parcels_{barangayName.Trim().ToLower().Replace(" ", "_")}_";
+            if (!Directory.Exists(
+                projectFolder))
+            {
+                return;
+            }
 
+            string barangayPart =
+                GetBarangayFilenamePart(
+                    barangayName);
 
             foreach (string filePath in Directory.GetFiles(
                 projectFolder,
-                $"{prefix}*.dwg"))
+                "*.dwg",
+                SearchOption.TopDirectoryOnly))
             {
+                string filename =
+                    Path.GetFileName(
+                        filePath);
+
+                // ----------------------------------------------------
+                // Never touch MASTER.dwg.
+                // ----------------------------------------------------
+
                 if (string.Equals(
-                    Path.GetFileName(filePath),
+                    filename,
+                    "MASTER.dwg",
+                    StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                // ----------------------------------------------------
+                // Keep the file we're about to install.
+                // ----------------------------------------------------
+
+                if (string.Equals(
+                    filename,
                     newFilename,
                     StringComparison.OrdinalIgnoreCase))
                 {
                     continue;
                 }
 
+                // ----------------------------------------------------
+                // Only delete canonical files belonging to this
+                // barangay.
+                // ----------------------------------------------------
 
-                File.Delete(filePath);
+                if (!IsCanonicalBarangayDrawing(
+                    filename,
+                    barangayPart))
+                {
+                    continue;
+                }
+
+                File.Delete(
+                    filePath);
             }
         }
-
 
         // ============================================================
         // DOWNLOAD DWG
@@ -272,32 +500,32 @@ namespace ParcelManager.Services
             Directory.CreateDirectory(
                 tempFolder);
 
-
             string tempPath =
                 Path.Combine(
                     tempFolder,
                     $"sync_{importId}.dwg");
 
-
-            if (File.Exists(tempPath))
+            if (File.Exists(
+                tempPath))
             {
-                File.Delete(tempPath);
+                File.Delete(
+                    tempPath);
             }
 
+            string baseUrl =
+                GetBaseUrl();
 
             string url =
-                $"{DownloadUrl}{importId}/";
-
+                $"{baseUrl}/api/parcels/sync/download/{importId}/";
 
             using HttpResponseMessage response =
-                await _httpClient.GetAsync(url);
-
+                await _httpClient.GetAsync(
+                    url);
 
             if (!response.IsSuccessStatusCode)
             {
                 string responseBody =
                     await response.Content.ReadAsStringAsync();
-
 
                 throw new HttpRequestException(
                     $"DWG download failed.\n\n" +
@@ -307,40 +535,41 @@ namespace ParcelManager.Services
                     $"Response:\n{responseBody}");
             }
 
-
             await using Stream stream =
                 await response.Content.ReadAsStreamAsync();
 
-
             await using FileStream file =
-                File.Create(tempPath);
+                File.Create(
+                    tempPath);
 
-
-            await stream.CopyToAsync(file);
-
+            await stream.CopyToAsync(
+                file);
 
             await file.FlushAsync();
 
-
             file.Close();
 
-
             // --------------------------------------------------------
-            // VERIFY DOWNLOADED SHA
+            // VERIFY SHA-256
             // --------------------------------------------------------
 
             string downloadedHash =
                 CalculateSha256(
                     tempPath);
 
-
             if (!string.Equals(
                 downloadedHash,
                 expectedSha256,
                 StringComparison.OrdinalIgnoreCase))
             {
-                File.Delete(tempPath);
-
+                try
+                {
+                    File.Delete(
+                        tempPath);
+                }
+                catch
+                {
+                }
 
                 throw new InvalidOperationException(
                     $"SHA-256 verification failed " +
@@ -349,10 +578,8 @@ namespace ParcelManager.Services
                     $"Downloaded:\n{downloadedHash}");
             }
 
-
             return tempPath;
         }
-
 
         // ============================================================
         // REPLACE LOCAL DRAWING
@@ -362,69 +589,51 @@ namespace ParcelManager.Services
             string tempPath,
             string localPath)
         {
-            if (!File.Exists(tempPath))
+            if (!File.Exists(
+                tempPath))
             {
                 throw new FileNotFoundException(
                     "The temporary DWG was not found.",
                     tempPath);
             }
 
-
             string? directory =
                 Path.GetDirectoryName(
                     localPath);
 
-
-            if (!string.IsNullOrWhiteSpace(directory))
+            if (!string.IsNullOrWhiteSpace(
+                directory))
             {
                 Directory.CreateDirectory(
                     directory);
             }
 
-
             string backupPath =
                 $"{localPath}.sync-backup";
 
-
             try
             {
-                // ----------------------------------------------------
-                // REMOVE OLD BACKUP
-                // ----------------------------------------------------
-
-                if (File.Exists(backupPath))
+                if (File.Exists(
+                    backupPath))
                 {
                     File.Delete(
                         backupPath);
                 }
 
-
-                // ----------------------------------------------------
-                // MOVE CURRENT DRAWING TO BACKUP
-                // ----------------------------------------------------
-
-                if (File.Exists(localPath))
+                if (File.Exists(
+                    localPath))
                 {
                     File.Move(
                         localPath,
                         backupPath);
                 }
 
-
-                // ----------------------------------------------------
-                // MOVE DOWNLOADED DRAWING INTO PLACE
-                // ----------------------------------------------------
-
                 File.Move(
                     tempPath,
                     localPath);
 
-
-                // ----------------------------------------------------
-                // SUCCESS
-                // ----------------------------------------------------
-
-                if (File.Exists(backupPath))
+                if (File.Exists(
+                    backupPath))
                 {
                     File.Delete(
                         backupPath);
@@ -432,10 +641,6 @@ namespace ParcelManager.Services
             }
             catch
             {
-                // ----------------------------------------------------
-                // RESTORE BACKUP
-                // ----------------------------------------------------
-
                 if (!File.Exists(localPath) &&
                     File.Exists(backupPath))
                 {
@@ -444,27 +649,42 @@ namespace ParcelManager.Services
                         localPath);
                 }
 
-
                 throw;
             }
             finally
             {
-                if (File.Exists(tempPath))
+                if (File.Exists(
+                    tempPath))
                 {
-                    File.Delete(tempPath);
+                    try
+                    {
+                        File.Delete(
+                            tempPath);
+                    }
+                    catch
+                    {
+                    }
                 }
 
-
-                if (File.Exists(backupPath))
+                if (File.Exists(
+                    backupPath))
                 {
-                    File.Delete(backupPath);
+                    try
+                    {
+                        File.Delete(
+                            backupPath);
+                    }
+                    catch
+                    {
+                    }
                 }
             }
         }
 
-
         // ============================================================
         // LOCAL DWG DETECTION
+        //
+        // MASTER.dwg is excluded.
         // ============================================================
 
         private List<string> GetLocalDwgs(
@@ -474,25 +694,161 @@ namespace ParcelManager.Services
                 projectFolder,
                 "*.dwg",
                 SearchOption.TopDirectoryOnly)
-                .Where(path =>
-                    !string.Equals(
-                        Path.GetFileName(path),
-                        "MASTER.dwg",
-                        StringComparison.OrdinalIgnoreCase))
+                .Where(
+                    path =>
+                        !string.Equals(
+                            Path.GetFileName(path),
+                            "MASTER.dwg",
+                            StringComparison.OrdinalIgnoreCase))
                 .ToList();
         }
 
+        // ============================================================
+        // CLEAN LOCAL DWGs AGAINST SERVER MANIFEST
+        //
+        // The refreshed server manifest is the source of truth.
+        //
+        // KEEP local file only when:
+        //
+        //     filename exists in manifest
+        //     AND
+        //     SHA-256 matches
+        //
+        // DELETE when:
+        //
+        //     filename is NOT in manifest
+        //
+        // OR:
+        //
+        //     filename exists but SHA is different
+        //
+        // MASTER.dwg is NEVER deleted.
+        // ============================================================
+
+        private int CleanupLocalDwgsAgainstManifest(
+            string projectFolder,
+            Manifest manifest)
+        {
+            if (!Directory.Exists(
+                projectFolder))
+            {
+                return 0;
+            }
+
+            Dictionary<string, ManifestFile> manifestFiles =
+                manifest.Files
+                    .Where(
+                        file =>
+                            !string.IsNullOrWhiteSpace(
+                                file.Filename))
+                    .GroupBy(
+                        file =>
+                            file.Filename,
+                        StringComparer.OrdinalIgnoreCase)
+                    .ToDictionary(
+                        group =>
+                            group.Key,
+                        group =>
+                            group.First(),
+                        StringComparer.OrdinalIgnoreCase);
+
+            int deletedCount = 0;
+
+            foreach (string dwgPath in GetLocalDwgs(
+                projectFolder))
+            {
+                string filename =
+                    Path.GetFileName(
+                        dwgPath);
+
+                // ----------------------------------------------------
+                // Safety.
+                //
+                // GetLocalDwgs already excludes MASTER.dwg.
+                // ----------------------------------------------------
+
+                if (string.Equals(
+                    filename,
+                    "MASTER.dwg",
+                    StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                // ----------------------------------------------------
+                // FILE NOT IN MANIFEST
+                //
+                // Example:
+                //
+                // 05-CANOCOTAN-2026-v15 - Copy.dwg
+                //
+                // Server doesn't know this filename.
+                //
+                // DELETE.
+                // ----------------------------------------------------
+
+                if (!manifestFiles.TryGetValue(
+                    filename,
+                    out ManifestFile? serverFile))
+                {
+                    File.Delete(
+                        dwgPath);
+
+                    deletedCount++;
+
+                    continue;
+                }
+
+                // ----------------------------------------------------
+                // FILE EXISTS IN MANIFEST.
+                //
+                // Compare SHA.
+                // ----------------------------------------------------
+
+                string localSha =
+                    CalculateSha256(
+                        dwgPath);
+
+                bool hashesMatch =
+                    string.Equals(
+                        localSha,
+                        serverFile.Sha256,
+                        StringComparison.OrdinalIgnoreCase);
+
+                // ----------------------------------------------------
+                // SAME FILENAME BUT DIFFERENT SHA
+                //
+                // Delete local version.
+                //
+                // GetFilesToSync() will then download the correct
+                // server version.
+                // ----------------------------------------------------
+
+                if (!hashesMatch)
+                {
+                    File.Delete(
+                        dwgPath);
+
+                    deletedCount++;
+                }
+            }
+
+            return deletedCount;
+        }
 
         // ============================================================
         // UPLOAD DETECTION
         //
-        // IMPORTANT:
+        // If a local DWG:
         //
-        // Filename alone does NOT determine whether a file should
-        // be uploaded.
+        // 1. Does not exist on server
+        //    -> upload
         //
-        // SHA-256 determines whether the local content is already
-        // present on the server.
+        // 2. Exists but SHA changed
+        //    -> upload
+        //
+        // 3. Exists and SHA is identical
+        //    -> skip
         // ============================================================
 
         private List<string> GetFilesToUpload(
@@ -502,11 +858,9 @@ namespace ParcelManager.Services
             var filesToUpload =
                 new List<string>();
 
-
             List<string> localDwgs =
                 GetLocalDwgs(
                     projectFolder);
-
 
             foreach (string dwgPath in localDwgs)
             {
@@ -514,19 +868,9 @@ namespace ParcelManager.Services
                     Path.GetFileName(
                         dwgPath);
 
-
-                // ----------------------------------------------------
-                // CALCULATE LOCAL SHA
-                // ----------------------------------------------------
-
                 string localSha =
                     CalculateSha256(
                         dwgPath);
-
-
-                // ----------------------------------------------------
-                // FIND SERVER FILE WITH SAME FILENAME
-                // ----------------------------------------------------
 
                 ManifestFile? serverFile =
                     manifest.Files.FirstOrDefault(
@@ -536,11 +880,8 @@ namespace ParcelManager.Services
                                 filename,
                                 StringComparison.OrdinalIgnoreCase));
 
-
                 // ----------------------------------------------------
-                // BRAND-NEW LOCAL DWG
-                //
-                // Filename does not exist on server.
+                // Local file does not exist on server.
                 // ----------------------------------------------------
 
                 if (serverFile == null)
@@ -551,12 +892,8 @@ namespace ParcelManager.Services
                     continue;
                 }
 
-
                 // ----------------------------------------------------
-                // SAME SHA
-                //
-                // Server already has this exact content.
-                // Do NOT upload again.
+                // Compare SHA.
                 // ----------------------------------------------------
 
                 bool hashesMatch =
@@ -565,30 +902,21 @@ namespace ParcelManager.Services
                         serverFile.Sha256,
                         StringComparison.OrdinalIgnoreCase);
 
-
                 if (hashesMatch)
                 {
                     continue;
                 }
 
-
                 // ----------------------------------------------------
-                // SAME FILENAME + DIFFERENT SHA
-                //
-                // Local drawing was modified.
-                //
-                // Upload it so the backend can create the next
-                // version.
+                // Local file was modified.
                 // ----------------------------------------------------
 
                 filesToUpload.Add(
                     dwgPath);
             }
 
-
             return filesToUpload;
         }
-
 
         // ============================================================
         // UPLOAD LOCAL CHANGES
@@ -603,15 +931,12 @@ namespace ParcelManager.Services
                     projectFolder,
                     manifest);
 
-
             if (filesToUpload.Count == 0)
             {
                 return 0;
             }
 
-
             int uploadedCount = 0;
-
 
             foreach (string dwgPath in filesToUpload)
             {
@@ -619,24 +944,18 @@ namespace ParcelManager.Services
                     Path.GetFileNameWithoutExtension(
                         dwgPath);
 
-
                 string dxfFolder =
                     Path.Combine(
                         projectFolder,
                         "DXF");
-
 
                 string dxfPath =
                     Path.Combine(
                         dxfFolder,
                         fileName + ".dxf");
 
-
-                // ----------------------------------------------------
-                // DXF MUST EXIST
-                // ----------------------------------------------------
-
-                if (!File.Exists(dxfPath))
+                if (!File.Exists(
+                    dxfPath))
                 {
                     throw new InvalidOperationException(
                         $"DXF file was not found for:\n\n" +
@@ -644,28 +963,45 @@ namespace ParcelManager.Services
                         $"Expected:\n{dxfPath}");
                 }
 
-
-                // ----------------------------------------------------
-                // UPLOAD DWG + DXF
-                // ----------------------------------------------------
-
                 UploadResult result =
                     await _uploadService.UploadAsync(
                         dwgPath,
                         dxfPath);
 
-
                 uploadedCount +=
                     result.Uploaded;
             }
 
-
             return uploadedCount;
         }
 
-
         // ============================================================
         // COMPLETE SYNC
+        //
+        // Flow:
+        //
+        // 1. Download server manifest
+        //
+        // 2. Generate DXFs from local DWGs
+        //
+        // 3. Upload local changes
+        //
+        // 4. Refresh server manifest
+        //
+        // 5. CLEAN LOCAL DWGs AGAINST MANIFEST
+        //
+        // 6. Find missing/changed server files
+        //
+        // 7. Download them
+        //
+        // 8. Delete old versions
+        //
+        // 9. Install new version
+        //
+        // 10. Generate DXFs again
+        //
+        // Empty folder is valid.
+        // Missing local files are valid.
         // ============================================================
 
         public async Task<int> SyncAsync(
@@ -680,7 +1016,6 @@ namespace ParcelManager.Services
                     projectFolder);
             }
 
-
             // ========================================================
             // 1. GET SERVER MANIFEST
             // ========================================================
@@ -688,92 +1023,127 @@ namespace ParcelManager.Services
             Manifest manifest =
                 await DownloadManifestAsync();
 
-
             // ========================================================
-            // 2. GENERATE DXFs BEFORE UPLOAD
+            // 2. GENERATE DXFs
             //
-            // This ensures every locally modified DWG has a matching
-            // DXF before UploadLocalChangesAsync() runs.
+            // If the folder is empty, this simply results in
+            // nothing to convert.
             // ========================================================
 
             await _dxfService.ConvertAllAsync(
                 projectFolder);
 
-
             // ========================================================
-            // 3. UPLOAD LOCAL CHANGES FIRST
+            // 3. UPLOAD LOCAL CHANGES
+            //
+            // If there are no local DWGs, this returns 0.
             //
             // IMPORTANT:
             //
-            // If local f9.dwg is v6 content and server currently has
-            // v5, the SHA will differ.
+            // Nothing is cleaned here.
             //
-            // We upload v6 BEFORE downloading anything.
+            // We first let the local files upload successfully.
             // ========================================================
 
             await UploadLocalChangesAsync(
                 projectFolder,
                 manifest);
 
-
             // ========================================================
-            // 4. DOWNLOAD FRESH MANIFEST
+            // 4. REFRESH MANIFEST
             //
-            // Backend should now contain the newly uploaded version.
+            // IMPORTANT:
             //
-            // Example:
+            // The first manifest may be outdated because an upload
+            // may have created a new server version.
             //
-            // Before:
-            //     f9.dwg -> v5 -> SHA AAA
-            //
-            // Local:
-            //     f9.dwg -> SHA BBB
-            //
-            // After upload:
-            //     f9.dwg -> v6 -> SHA BBB
-            //
-            // We MUST get the new manifest before download detection.
+            // The second manifest becomes our source of truth.
             // ========================================================
 
             manifest =
                 await DownloadManifestAsync();
 
+            // ========================================================
+            // 5. CLEAN LOCAL DWGs AGAINST REFRESHED MANIFEST
+            //
+            // KEEP only when:
+            //
+            //     filename exists in manifest
+            //     AND SHA matches
+            //
+            // DELETE when:
+            //
+            //     filename does not exist in manifest
+            //
+            // OR:
+            //
+            //     SHA does not match
+            //
+            // MASTER.dwg is always preserved.
+            // ========================================================
+
+            CleanupLocalDwgsAgainstManifest(
+                projectFolder,
+                manifest);
 
             // ========================================================
-            // 5. DETERMINE SERVER FILES TO DOWNLOAD
+            // 6. DETERMINE DOWNLOADS
+            //
+            // After cleanup:
+            //
+            // Missing files -> DOWNLOAD
+            //
+            // Matching files -> SKIP
+            //
+            // Incorrect SHA -> was deleted above -> DOWNLOAD
             // ========================================================
 
             List<ManifestFile> filesToSync =
                 GetFilesToSync(
                     manifest,
-                    localBarangays);
-
+                    projectFolder);
 
             // ========================================================
-            // 6. DOWNLOAD SERVER CHANGES
+            // NOTHING TO DOWNLOAD
             // ========================================================
+
+            if (filesToSync.Count == 0)
+            {
+                await _dxfService.ConvertAllAsync(
+                    projectFolder);
+
+                return 0;
+            }
 
             int syncedCount = 0;
-
 
             string tempFolder =
                 Path.Combine(
                     projectFolder,
                     ".sync-temp");
 
-
             try
             {
+                Directory.CreateDirectory(
+                    tempFolder);
+
                 foreach (ManifestFile file in filesToSync)
                 {
+                    // ------------------------------------------------
+                    // SERVER MANIFEST FILENAME IS THE SOURCE OF TRUTH
+                    //
+                    // Example:
+                    //
+                    // 03-CANOCOTAN-2026-v12.dwg
+                    // ------------------------------------------------
+
                     string localPath =
                         Path.Combine(
                             projectFolder,
                             file.Filename);
 
-
                     // ------------------------------------------------
-                    // DOWNLOAD TO TEMPORARY LOCATION
+                    // DOWNLOAD
                     // ------------------------------------------------
 
                     string tempPath =
@@ -782,9 +1152,16 @@ namespace ParcelManager.Services
                             tempFolder,
                             file.Sha256);
 
-
                     // ------------------------------------------------
-                    // REMOVE OLD VERSIONS OF SAME BARANGAY
+                    // DELETE PREVIOUS CANONICAL VERSIONS
+                    //
+                    // Example:
+                    //
+                    // v10
+                    // v11
+                    // v12
+                    //
+                    // downloading v13 deletes all three.
                     // ------------------------------------------------
 
                     DeleteOldBarangayDrawings(
@@ -792,15 +1169,13 @@ namespace ParcelManager.Services
                         file.Barangay,
                         file.Filename);
 
-
                     // ------------------------------------------------
-                    // REPLACE LOCAL DRAWING
+                    // INSTALL NEW VERSION
                     // ------------------------------------------------
 
                     ReplaceLocalDrawing(
                         tempPath,
                         localPath);
-
 
                     syncedCount++;
                 }
@@ -808,7 +1183,7 @@ namespace ParcelManager.Services
             finally
             {
                 // ----------------------------------------------------
-                // CLEAN TEMP FOLDER
+                // ALWAYS CLEAN TEMP DIRECTORY
                 // ----------------------------------------------------
 
                 if (Directory.Exists(
@@ -826,20 +1201,15 @@ namespace ParcelManager.Services
                 }
             }
 
-
             // ========================================================
             // 7. GENERATE DXFs AGAIN
-            //
-            // Needed if any server drawings were downloaded.
-            // ConvertAllAsync should skip DXFs that are already current.
             // ========================================================
 
             await _dxfService.ConvertAllAsync(
                 projectFolder);
 
-
             // ========================================================
-            // 8. RETURN DOWNLOAD COUNT
+            // 8. RETURN NUMBER OF DOWNLOADED FILES
             // ========================================================
 
             return syncedCount;

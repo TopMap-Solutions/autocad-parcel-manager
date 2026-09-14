@@ -1,35 +1,39 @@
-﻿using System;
-using System.Net.Http;
-using System.Windows;
-using System.Windows.Input;
-using Microsoft.Win32;
-using ParcelManager.Models;
+﻿using ParcelManager.Models;
 using ParcelManager.Services;
 
-namespace ParcelManager
+using System;
+using System.Net.Http;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Input;
+
+namespace ParcelManager.Views
 {
-    public partial class MainWindow : Window
+    public partial class ProjectView : UserControl
     {
-        private readonly AuthService _authService;
         private readonly ProjectService _projectService;
         private readonly DrawingService _drawingService;
         private readonly SyncService _syncService;
-        private readonly DxfService _dxfTestService;
-
 
         private string? _projectRootFolder;
         private string? _masterDrawingPath;
 
 
-        public MainWindow()
+        public ProjectView(
+            ProjectService projectService,
+            DrawingService drawingService,
+            SyncService syncService)
         {
             InitializeComponent();
 
-            _authService = new AuthService();
-            _projectService = new ProjectService();
-            _drawingService = new DrawingService();
-            _syncService = new SyncService();
-            _dxfTestService = new DxfService();
+            _projectService =
+                projectService;
+
+            _drawingService =
+                drawingService;
+
+            _syncService =
+                syncService;
         }
 
 
@@ -37,15 +41,31 @@ namespace ParcelManager
             object sender,
             RoutedEventArgs e)
         {
-            var dialog = new OpenFolderDialog
-            {
-                Title = "Select Project Root Folder"
-            };
+            var dialog =
+                new Microsoft.Win32.OpenFileDialog
+                {
+                    Title =
+                        "Select Project Root Folder",
+
+                    CheckFileExists =
+                        false,
+
+                    FileName =
+                        "Select Folder"
+                };
 
             if (dialog.ShowDialog() == true)
             {
-                LoadProjectFolder(
-                    dialog.FolderName);
+                string? folder =
+                    System.IO.Path.GetDirectoryName(
+                        dialog.FileName);
+
+                if (!string.IsNullOrWhiteSpace(
+                    folder))
+                {
+                    LoadProjectFolder(
+                        folder);
+                }
             }
         }
 
@@ -53,12 +73,14 @@ namespace ParcelManager
         private void LoadProjectFolder(
             string rootFolder)
         {
-            if (string.IsNullOrWhiteSpace(rootFolder))
+            if (string.IsNullOrWhiteSpace(
+                rootFolder))
             {
                 return;
             }
 
-            if (!System.IO.Directory.Exists(rootFolder))
+            if (!System.IO.Directory.Exists(
+                rootFolder))
             {
                 MessageBox.Show(
                     "The selected folder does not exist.",
@@ -135,7 +157,6 @@ namespace ParcelManager
                 barangay.DrawingPath);
         }
 
-
         private void OpenDrawing(
             string drawingPath)
         {
@@ -179,18 +200,56 @@ namespace ParcelManager
                 return;
             }
 
+
+            Window? mainWindow =
+                Window.GetWindow(this);
+
+
+            var syncDialog =
+                new SyncDialog();
+
+            syncDialog.Owner =
+                mainWindow;
+
+
+            if (mainWindow != null)
+            {
+                mainWindow.IsEnabled =
+                    false;
+            }
+
+
+            syncDialog.Show();
+
             try
             {
+
                 var barangays =
                     _projectService.GetBarangayDrawings(
                         rootFolder);
+
 
                 int syncedCount =
                     await _syncService.SyncAsync(
                         rootFolder,
                         barangays);
 
+
+                if (syncDialog.IsVisible)
+                {
+                    syncDialog.Close();
+                }
+
+
+                if (mainWindow != null)
+                {
+                    mainWindow.IsEnabled =
+                        true;
+                }
+
+
                 RefreshProject();
+
 
                 if (syncedCount == 0)
                 {
@@ -203,6 +262,7 @@ namespace ParcelManager
                     return;
                 }
 
+
                 MessageBox.Show(
                     $"{syncedCount} parcel drawing(s) synchronized successfully.",
                     "Sync Complete",
@@ -211,6 +271,19 @@ namespace ParcelManager
             }
             catch (HttpRequestException ex)
             {
+
+                if (syncDialog.IsVisible)
+                {
+                    syncDialog.Close();
+                }
+
+
+                if (mainWindow != null)
+                {
+                    mainWindow.IsEnabled =
+                        true;
+                }
+
                 MessageBox.Show(
                     $"GIS server request failed.\n\n{ex.Message}",
                     "Sync Error",
@@ -219,6 +292,19 @@ namespace ParcelManager
             }
             catch (Exception ex)
             {
+
+                if (syncDialog.IsVisible)
+                {
+                    syncDialog.Close();
+                }
+
+
+                if (mainWindow != null)
+                {
+                    mainWindow.IsEnabled =
+                        true;
+                }
+
                 MessageBox.Show(
                     $"Sync failed.\n\n{ex.Message}",
                     "Sync Error",
@@ -269,14 +355,5 @@ namespace ParcelManager
 
             return _projectRootFolder;
         }
-
-
-        private void Logout_Click(
-            object sender,
-            RoutedEventArgs e)
-        {
-            _authService.Logout();
-        }
-
     }
 }
