@@ -1,54 +1,66 @@
-﻿using System;
+﻿using ParcelManager.Models;
+using ParcelManager.Services;
+using System;
 using System.Net.Http;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
-using Microsoft.Win32;
-using ParcelManager.Models;
-using ParcelManager.Services;
 
-namespace ParcelManager
+namespace ParcelManager.Views
 {
-    public partial class MainWindow : Window
+    public partial class ProjectView : UserControl
     {
-        private readonly AuthService _authService;
         private readonly ProjectService _projectService;
         private readonly DrawingService _drawingService;
         private readonly SyncService _syncService;
-        private readonly DxfService _dxfTestService;
-
 
         private string? _projectRootFolder;
         private string? _masterDrawingPath;
 
 
-        public MainWindow()
+        public ProjectView(
+            ProjectService projectService,
+            DrawingService drawingService,
+            SyncService syncService)
         {
             InitializeComponent();
 
-            _authService = new AuthService();
-            _projectService = new ProjectService();
-            _drawingService = new DrawingService();
-            _syncService = new SyncService();
-            _dxfTestService = new DxfService();
+            _projectService = projectService;
+            _drawingService = drawingService;
+            _syncService = syncService;
         }
 
+
+        // ============================================================
+        // BROWSE PROJECT ROOT
+        // ============================================================
 
         private void BrowseRoot_Click(
             object sender,
             RoutedEventArgs e)
         {
-            var dialog = new OpenFolderDialog
+            var dialog = new Microsoft.Win32.OpenFileDialog
             {
-                Title = "Select Project Root Folder"
+                Title = "Select Project Root Folder",
+                CheckFileExists = false,
+                FileName = "Select Folder"
             };
 
             if (dialog.ShowDialog() == true)
             {
-                LoadProjectFolder(
-                    dialog.FolderName);
+                string? folder = System.IO.Path.GetDirectoryName(dialog.FileName);
+
+                if (!string.IsNullOrWhiteSpace(folder))
+                {
+                    LoadProjectFolder(folder);
+                }
             }
         }
 
+
+        // ============================================================
+        // LOAD PROJECT
+        // ============================================================
 
         private void LoadProjectFolder(
             string rootFolder)
@@ -69,31 +81,29 @@ namespace ParcelManager
                 return;
             }
 
-            _projectRootFolder =
-                rootFolder;
+            _projectRootFolder = rootFolder;
 
-            RootFolderTextBox.Text =
-                rootFolder;
+            RootFolderTextBox.Text = rootFolder;
 
             _masterDrawingPath =
-                _projectService.FindMasterDrawing(
-                    rootFolder);
+                _projectService.FindMasterDrawing(rootFolder);
 
             var barangays =
-                _projectService.GetBarangayDrawings(
-                    rootFolder);
+                _projectService.GetBarangayDrawings(rootFolder);
 
-            BarangayList.ItemsSource =
-                barangays;
+            BarangayList.ItemsSource = barangays;
         }
 
+
+        // ============================================================
+        // VIEW MASTER
+        // ============================================================
 
         private void ViewMaster_Click(
             object sender,
             RoutedEventArgs e)
         {
-            string? rootFolder =
-                GetSelectedRootFolder();
+            string? rootFolder = GetSelectedRootFolder();
 
             if (rootFolder == null)
             {
@@ -101,11 +111,9 @@ namespace ParcelManager
             }
 
             _masterDrawingPath =
-                _projectService.FindMasterDrawing(
-                    rootFolder);
+                _projectService.FindMasterDrawing(rootFolder);
 
-            if (string.IsNullOrWhiteSpace(
-                _masterDrawingPath))
+            if (string.IsNullOrWhiteSpace(_masterDrawingPath))
             {
                 MessageBox.Show(
                     "MASTER.dwg was not found in the project root folder.",
@@ -116,31 +124,35 @@ namespace ParcelManager
                 return;
             }
 
-            OpenDrawing(
-                _masterDrawingPath);
+            OpenDrawing(_masterDrawingPath);
         }
 
+
+        // ============================================================
+        // BARANGAY DOUBLE CLICK
+        // ============================================================
 
         private void BarangayList_MouseDoubleClick(
             object sender,
             MouseButtonEventArgs e)
         {
-            if (BarangayList.SelectedItem
-                is not Barangay barangay)
+            if (BarangayList.SelectedItem is not Barangay barangay)
             {
                 return;
             }
 
-            OpenDrawing(
-                barangay.DrawingPath);
+            OpenDrawing(barangay.DrawingPath);
         }
 
+
+        // ============================================================
+        // OPEN DRAWING
+        // ============================================================
 
         private void OpenDrawing(
             string drawingPath)
         {
-            if (!_drawingService.DrawingExists(
-                drawingPath))
+            if (!_drawingService.DrawingExists(drawingPath))
             {
                 MessageBox.Show(
                     "The drawing file no longer exists.\n\n" +
@@ -154,8 +166,7 @@ namespace ParcelManager
                 return;
             }
 
-            if (!_drawingService.OpenDrawing(
-                drawingPath))
+            if (!_drawingService.OpenDrawing(drawingPath))
             {
                 MessageBox.Show(
                     $"Could not open the drawing.\n\n" +
@@ -167,12 +178,15 @@ namespace ParcelManager
         }
 
 
+        // ============================================================
+        // SYNC
+        // ============================================================
+
         private async void Sync_Click(
             object sender,
             RoutedEventArgs e)
         {
-            string? rootFolder =
-                GetSelectedRootFolder();
+            string? rootFolder = GetSelectedRootFolder();
 
             if (rootFolder == null)
             {
@@ -182,8 +196,7 @@ namespace ParcelManager
             try
             {
                 var barangays =
-                    _projectService.GetBarangayDrawings(
-                        rootFolder);
+                    _projectService.GetBarangayDrawings(rootFolder);
 
                 int syncedCount =
                     await _syncService.SyncAsync(
@@ -228,23 +241,28 @@ namespace ParcelManager
         }
 
 
+        // ============================================================
+        // REFRESH
+        // ============================================================
+
         private void RefreshProject()
         {
-            if (string.IsNullOrWhiteSpace(
-                _projectRootFolder))
+            if (string.IsNullOrWhiteSpace(_projectRootFolder))
             {
                 return;
             }
 
-            LoadProjectFolder(
-                _projectRootFolder);
+            LoadProjectFolder(_projectRootFolder);
         }
 
 
+        // ============================================================
+        // GET PROJECT ROOT
+        // ============================================================
+
         private string? GetSelectedRootFolder()
         {
-            if (string.IsNullOrWhiteSpace(
-                _projectRootFolder))
+            if (string.IsNullOrWhiteSpace(_projectRootFolder))
             {
                 MessageBox.Show(
                     "Please select the project root folder first.",
@@ -255,8 +273,7 @@ namespace ParcelManager
                 return null;
             }
 
-            if (!System.IO.Directory.Exists(
-                _projectRootFolder))
+            if (!System.IO.Directory.Exists(_projectRootFolder))
             {
                 MessageBox.Show(
                     "The selected project folder no longer exists.",
@@ -269,14 +286,5 @@ namespace ParcelManager
 
             return _projectRootFolder;
         }
-
-
-        private void Logout_Click(
-            object sender,
-            RoutedEventArgs e)
-        {
-            _authService.Logout();
-        }
-
     }
 }

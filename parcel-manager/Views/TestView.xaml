@@ -1,0 +1,52 @@
+<UserControl
+    x:Class="ParcelManager.Views.TestView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Grid>
+
+        <Border
+            Background="White"
+            BorderBrush="#E2E4E8"
+            BorderThickness="1"
+            Padding="30">
+
+            <StackPanel
+                VerticalAlignment="Center"
+                HorizontalAlignment="Center">
+
+                <TextBlock
+                    Text="Test View"
+                    FontSize="28"
+                    FontWeight="SemiBold"
+                    Foreground="#222222"
+                    HorizontalAlignment="Center" />
+
+                <TextBlock
+                    Text="The view navigation is working."
+                    FontSize="13"
+                    Foreground="#777777"
+                    Margin="0,8,0,25"
+                    HorizontalAlignment="Center" />
+
+                <Button
+                    Content="Back to Project"
+                    Width="140"
+                    Height="38"
+                    Background="#2563EB"
+                    Foreground="White"
+                    BorderThickness="0"
+                    FontWeight="SemiBold"
+                    Click="Back_Click"
+                    Cursor="Hand" />
+
+            </StackPanel>
+
+        </Border>
+
+    </Grid>
+
+</UserControl>
