@@ -37,10 +37,6 @@ namespace ParcelManager.Views
         }
 
 
-        // ============================================================
-        // BROWSE PROJECT ROOT
-        // ============================================================
-
         private void BrowseRoot_Click(
             object sender,
             RoutedEventArgs e)
@@ -73,10 +69,6 @@ namespace ParcelManager.Views
             }
         }
 
-
-        // ============================================================
-        // LOAD PROJECT
-        // ============================================================
 
         private void LoadProjectFolder(
             string rootFolder)
@@ -118,10 +110,6 @@ namespace ParcelManager.Views
         }
 
 
-        // ============================================================
-        // VIEW MASTER
-        // ============================================================
-
         private void ViewMaster_Click(
             object sender,
             RoutedEventArgs e)
@@ -155,10 +143,6 @@ namespace ParcelManager.Views
         }
 
 
-        // ============================================================
-        // BARANGAY DOUBLE CLICK
-        // ============================================================
-
         private void BarangayList_MouseDoubleClick(
             object sender,
             MouseButtonEventArgs e)
@@ -172,11 +156,6 @@ namespace ParcelManager.Views
             OpenDrawing(
                 barangay.DrawingPath);
         }
-
-
-        // ============================================================
-        // OPEN DRAWING
-        // ============================================================
 
         private void OpenDrawing(
             string drawingPath)
@@ -209,10 +188,6 @@ namespace ParcelManager.Views
         }
 
 
-        // ============================================================
-        // SYNC
-        // ============================================================
-
         private async void Sync_Click(
             object sender,
             RoutedEventArgs e)
@@ -225,16 +200,10 @@ namespace ParcelManager.Views
                 return;
             }
 
-            // --------------------------------------------------------
-            // GET MAIN WINDOW
-            // --------------------------------------------------------
 
             Window? mainWindow =
                 Window.GetWindow(this);
 
-            // --------------------------------------------------------
-            // CREATE SYNC DIALOG
-            // --------------------------------------------------------
 
             var syncDialog =
                 new SyncDialog();
@@ -242,9 +211,6 @@ namespace ParcelManager.Views
             syncDialog.Owner =
                 mainWindow;
 
-            // --------------------------------------------------------
-            // DISABLE MAIN WINDOW
-            // --------------------------------------------------------
 
             if (mainWindow != null)
             {
@@ -252,43 +218,28 @@ namespace ParcelManager.Views
                     false;
             }
 
-            // --------------------------------------------------------
-            // SHOW SYNC DIALOG
-            // --------------------------------------------------------
 
             syncDialog.Show();
 
             try
             {
-                // ----------------------------------------------------
-                // GET LOCAL BARANGAYS
-                // ----------------------------------------------------
 
                 var barangays =
                     _projectService.GetBarangayDrawings(
                         rootFolder);
 
-                // ----------------------------------------------------
-                // RUN SYNC
-                // ----------------------------------------------------
 
                 int syncedCount =
                     await _syncService.SyncAsync(
                         rootFolder,
                         barangays);
 
-                // ----------------------------------------------------
-                // CLOSE SYNC DIALOG FIRST
-                // ----------------------------------------------------
 
                 if (syncDialog.IsVisible)
                 {
                     syncDialog.Close();
                 }
 
-                // ----------------------------------------------------
-                // ENABLE MAIN WINDOW
-                // ----------------------------------------------------
 
                 if (mainWindow != null)
                 {
@@ -296,15 +247,9 @@ namespace ParcelManager.Views
                         true;
                 }
 
-                // ----------------------------------------------------
-                // REFRESH PROJECT
-                // ----------------------------------------------------
 
                 RefreshProject();
 
-                // ----------------------------------------------------
-                // NOTHING CHANGED
-                // ----------------------------------------------------
 
                 if (syncedCount == 0)
                 {
@@ -317,9 +262,6 @@ namespace ParcelManager.Views
                     return;
                 }
 
-                // ----------------------------------------------------
-                // FILES SYNCHRONIZED
-                // ----------------------------------------------------
 
                 MessageBox.Show(
                     $"{syncedCount} parcel drawing(s) synchronized successfully.",
@@ -329,18 +271,12 @@ namespace ParcelManager.Views
             }
             catch (HttpRequestException ex)
             {
-                // ----------------------------------------------------
-                // CLOSE SYNC DIALOG
-                // ----------------------------------------------------
 
                 if (syncDialog.IsVisible)
                 {
                     syncDialog.Close();
                 }
 
-                // ----------------------------------------------------
-                // ENABLE MAIN WINDOW
-                // ----------------------------------------------------
 
                 if (mainWindow != null)
                 {
@@ -356,18 +292,12 @@ namespace ParcelManager.Views
             }
             catch (Exception ex)
             {
-                // ----------------------------------------------------
-                // CLOSE SYNC DIALOG
-                // ----------------------------------------------------
 
                 if (syncDialog.IsVisible)
                 {
                     syncDialog.Close();
                 }
 
-                // ----------------------------------------------------
-                // ENABLE MAIN WINDOW
-                // ----------------------------------------------------
 
                 if (mainWindow != null)
                 {
@@ -384,10 +314,6 @@ namespace ParcelManager.Views
         }
 
 
-        // ============================================================
-        // REFRESH
-        // ============================================================
-
         private void RefreshProject()
         {
             if (string.IsNullOrWhiteSpace(
@@ -400,10 +326,6 @@ namespace ParcelManager.Views
                 _projectRootFolder);
         }
 
-
-        // ============================================================
-        // GET PROJECT ROOT
-        // ============================================================
 
         private string? GetSelectedRootFolder()
         {

@@ -5,7 +5,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     Title="Synchronizing | Land Parcel Manager"
     Width="360"
-    Height="190"
+    Height="240"
     WindowStartupLocation="CenterOwner"
     ResizeMode="NoResize"
     ShowInTaskbar="False"
@@ -16,6 +16,14 @@
         <StackPanel
             HorizontalAlignment="Center"
             VerticalAlignment="Center">
+
+            <Image
+                Source="/Assets/topmap-logo.png"
+                Width="42"
+                Height="42"
+                Stretch="Uniform"
+                HorizontalAlignment="Center"
+                Margin="0,0,0,12" />
 
             <TextBlock
                 Text="Syncing"
@@ -29,6 +37,7 @@
                 FontSize="12"
                 Foreground="#777777"
                 TextAlignment="Center"
+                HorizontalAlignment="Center"
                 Margin="0,8,0,18" />
 
             <ProgressBar

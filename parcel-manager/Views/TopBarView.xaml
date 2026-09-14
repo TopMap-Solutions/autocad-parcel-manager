@@ -6,64 +6,72 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
-	<Border
+    <Border
         Background="White"
         BorderBrush="#E2E4E8"
         BorderThickness="0,0,0,1">
 
-		<Grid Margin="16,0,26,0">
+        <Grid Margin="26,3,26,6">
 
-			<Grid.ColumnDefinitions>
-				<ColumnDefinition Width="*" />
-				<ColumnDefinition Width="Auto" />
-				<ColumnDefinition Width="Auto" />
-				<ColumnDefinition Width="Auto" />
-			</Grid.ColumnDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
 
-			<!-- APP NAME -->
 
-			<StackPanel
+            <Image
                 Grid.Column="0"
+                Source="/Assets/topmap-logo.png"
+                Width="38"
+                Height="38"
+                Stretch="Uniform"
                 VerticalAlignment="Center"
-                Height="39"
-                Margin="10,0,20,0">
+                Margin="0,0,12,0" />
 
-				<TextBlock
+
+            <StackPanel
+                Grid.Column="1"
+                VerticalAlignment="Center"
+                Margin="0,0,20,0">
+
+                <TextBlock
                     Text="Land Parcel Manager"
                     FontSize="18"
                     FontWeight="SemiBold"
                     Foreground="#222222" />
 
-				<TextBlock
+                <TextBlock
                     Text="Powered by TopMap Solutions"
                     FontSize="10"
-                    Foreground="#777777" />
+                    Foreground="#777777"
+                    Margin="0,1,0,0" />
 
-			</StackPanel>
+            </StackPanel>
 
-			<!-- USER -->
 
-			<StackPanel
+            <StackPanel
                 Grid.Column="2"
                 VerticalAlignment="Center"
                 Margin="0,0,20,0">
 
-				<TextBlock
+                <TextBlock
                     x:Name="UsernameText"
                     FontWeight="SemiBold"
                     FontSize="13"
                     Foreground="#222222" />
 
-				<TextBlock
+                <TextBlock
                     Text="Signed in"
                     FontSize="10"
-                    Foreground="#777777" />
+                    Foreground="#777777"
+                    Margin="0,1,0,0" />
 
-			</StackPanel>
+            </StackPanel>
 
-			<!-- LOGOUT -->
 
-			<Button
+            <Button
                 Grid.Column="3"
                 Content="Logout"
                 Width="70"
@@ -75,8 +83,8 @@
                 Click="Logout_Click"
                 Cursor="Hand" />
 
-		</Grid>
+        </Grid>
 
-	</Border>
+    </Border>
 
 </UserControl>

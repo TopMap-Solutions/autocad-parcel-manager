@@ -5,7 +5,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     Title="Configuration | Land Parcel Manager"
     Width="500"
-    Height="360"
+    Height="390"
     WindowStartupLocation="CenterOwner"
     ResizeMode="NoResize">
 
@@ -20,15 +20,45 @@
 		</Grid.RowDefinitions>
 
 
+		<!-- ====================================================== -->
 		<!-- TITLE -->
+		<!-- ====================================================== -->
 
-		<TextBlock
-            Text="Land Parcel Manager Configuration"
-            FontSize="20"
-            FontWeight="SemiBold" />
+		<StackPanel
+            Orientation="Horizontal"
+            VerticalAlignment="Center">
+
+			<Image
+                Source="/Assets/topmap-logo.png"
+                Width="42"
+                Height="51"
+                Stretch="Uniform"
+                VerticalAlignment="Center"
+                Margin="0,0,12,0" />
+
+			<StackPanel
+                VerticalAlignment="Center">
+
+				<TextBlock
+                    Text="Land Parcel Manager"
+                    FontSize="20"
+                    FontWeight="SemiBold"
+                    Foreground="#222222" />
+
+				<TextBlock
+                    Text="Application Configuration"
+                    FontSize="11"
+                    Foreground="#777777"
+                    Margin="0,2,0,0" />
+
+			</StackPanel>
+
+		</StackPanel>
 
 
+		<!-- ====================================================== -->
 		<!-- SERVER URL -->
+		<!-- ====================================================== -->
 
 		<StackPanel
             Grid.Row="1"
@@ -36,7 +66,8 @@
 
 			<TextBlock
                 Text="Server URL"
-                FontWeight="SemiBold" />
+                FontWeight="SemiBold"
+                Foreground="#222222" />
 
 			<TextBox
                 x:Name="ServerUrlTextBox"
@@ -54,7 +85,9 @@
 		</StackPanel>
 
 
+		<!-- ====================================================== -->
 		<!-- AUTOCAD CORE CONSOLE -->
+		<!-- ====================================================== -->
 
 		<StackPanel
             Grid.Row="2"
@@ -62,7 +95,8 @@
 
 			<TextBlock
                 Text="AutoCAD Core Path"
-                FontWeight="SemiBold" />
+                FontWeight="SemiBold"
+                Foreground="#222222" />
 
 			<TextBox
                 x:Name="CoreConsolePathTextBox"
@@ -72,19 +106,22 @@
                 VerticalContentAlignment="Center" />
 
 			<TextBlock
-                Text="Path to accoreconsole.exe"
+                Text="Example: C:\Program Files\Autodesk\AutoCAD 2027\accoreconsole.exe"
                 FontSize="10"
                 Foreground="#777777"
-                Margin="0,5,0,0" />
+                Margin="0,5,0,0"
+                TextWrapping="Wrap" />
 
 		</StackPanel>
 
 
+		<!-- ====================================================== -->
 		<!-- BUTTONS -->
+		<!-- ====================================================== -->
 
 		<Grid
             Grid.Row="4"
-            Margin="0,20,0,0">
+            Margin="0,20,0,4">
 
 			<!-- RESET -->
 
