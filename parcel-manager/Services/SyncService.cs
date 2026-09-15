@@ -14,14 +14,19 @@ namespace ParcelManager.Services
     {
         private readonly HttpClient _httpClient;
         private readonly ConfigService _configService;
+        private readonly AuthService _authService;
         private readonly DxfService _dxfService;
         private readonly UploadService _uploadService;
 
         public SyncService(
-            ConfigService configService)
+            ConfigService configService,
+            AuthService authService)
         {
             _configService =
                 configService;
+
+            _authService =
+                authService;
 
             _httpClient =
                 new HttpClient();
@@ -32,7 +37,8 @@ namespace ParcelManager.Services
 
             _uploadService = new UploadService(
                 _httpClient,
-                _configService);
+                _configService,
+                _authService);
         }
 
         // ============================================================
@@ -54,10 +60,6 @@ namespace ParcelManager.Services
             return baseUrl.TrimEnd('/');
         }
 
-        // ============================================================
-        // MANIFEST
-        // ============================================================
-
         public async Task<Manifest> DownloadManifestAsync()
         {
             string baseUrl =
@@ -66,9 +68,17 @@ namespace ParcelManager.Services
             string manifestUrl =
                 $"{baseUrl}/api/parcels/sync/manifest/";
 
-            using HttpResponseMessage response =
-                await _httpClient.GetAsync(
+            using var request =
+                new HttpRequestMessage(
+                    HttpMethod.Get,
                     manifestUrl);
+
+            _authService.AddAuthorizationHeader(
+                request);
+
+            using HttpResponseMessage response =
+                await _httpClient.SendAsync(
+                    request);
 
             string responseBody =
                 await response.Content.ReadAsStringAsync();
@@ -96,9 +106,6 @@ namespace ParcelManager.Services
             return manifest;
         }
 
-        // ============================================================
-        // SHA-256
-        // ============================================================
 
         public string CalculateSha256(
             string filePath)
@@ -518,9 +525,17 @@ namespace ParcelManager.Services
             string url =
                 $"{baseUrl}/api/parcels/sync/download/{importId}/";
 
-            using HttpResponseMessage response =
-                await _httpClient.GetAsync(
+            using var request =
+                new HttpRequestMessage(
+                    HttpMethod.Get,
                     url);
+
+            _authService.AddAuthorizationHeader(
+                request);
+
+            using HttpResponseMessage response =
+                await _httpClient.SendAsync(
+                    request);
 
             if (!response.IsSuccessStatusCode)
             {

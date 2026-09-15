@@ -13,13 +13,17 @@ namespace ParcelManager.Services
     {
         private readonly HttpClient _httpClient;
         private readonly ConfigService _configService;
+        private readonly AuthService _authService;
 
         public UploadService(
             HttpClient httpClient,
-            ConfigService configService)
+            ConfigService configService,
+            AuthService authService
+            )
         {
             _httpClient = httpClient;
             _configService = configService;
+            _authService = authService;
         }
 
         // ============================================================
@@ -107,17 +111,23 @@ namespace ParcelManager.Services
                 // SEND REQUEST
                 // ----------------------------------------------------
 
+                using var request =
+                    new HttpRequestMessage(
+                        HttpMethod.Post,
+                        uploadUrl)
+                    {
+                        Content = form
+                    };
+
+                _authService.AddAuthorizationHeader(
+                    request);
+
                 using HttpResponseMessage response =
-                    await _httpClient.PostAsync(
-                        uploadUrl,
-                        form);
+                    await _httpClient.SendAsync(
+                        request);
 
                 string responseBody =
                     await response.Content.ReadAsStringAsync();
-
-                // ----------------------------------------------------
-                // HANDLE ERROR
-                // ----------------------------------------------------
 
                 if (!response.IsSuccessStatusCode)
                 {

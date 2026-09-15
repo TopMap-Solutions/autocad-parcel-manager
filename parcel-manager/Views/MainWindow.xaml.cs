@@ -37,7 +37,8 @@ namespace ParcelManager.Views
 
             _syncService =
                 new SyncService(
-                    _configService);
+                    _configService,
+                    _authService);
 
             _dxfTestService =
                 new DxfService(
