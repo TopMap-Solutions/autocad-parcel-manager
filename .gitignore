@@ -1,4 +1,21 @@
-bin
-obj
-.vs
+# Build output
+bin/
+obj/
+
+# Visual Studio
+.vs/
+
+# Environment / secrets
 .env
+.env.*
+
+# User-specific files
+*.user
+*.suo
+
+# Installer output
+autocad-parcel/installer/output/
+
+# OS
+.DS_Store
+Thumbs.db

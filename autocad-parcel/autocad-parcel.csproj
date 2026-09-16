@@ -4,7 +4,7 @@
     <RootNamespace>autocad_parcel</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <Platforms>x64</Platforms>
+    <Platforms>x64;AnyCPU</Platforms>
 	<GenerateAssemblyInfo>false</GenerateAssemblyInfo>
 	<UseWindowsForms>true</UseWindowsForms>
 	<UseWPF>true</UseWPF>
@@ -14,6 +14,11 @@
     <PackageReference Include="AutoCAD.NET" Version="26.0.0" />
   </ItemGroup>
   <ItemGroup>
+    <Folder Include="Assets\" />
     <Folder Include="Properties\" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Assets\topmap-logo.png" />
+	<EmbeddedResource Include="Assets\topmap-logo.ico" />
   </ItemGroup>
 </Project>

@@ -4,7 +4,7 @@
       "commandName": "Executable",
       "executablePath": "C:\\Program Files\\Autodesk\\AutoCAD 2027\\acad.exe",
       "commandLineArgs": "netload",
-      "workingDirectory": "D:\\1. PROJECT\\autocad-parcel-manager\\autocad-parcel\\bin\\x64\\Debug\\net10.0-windows"
+      "workingDirectory": "D:\\2. AREAS\\topmapsolutions\\autocad-parcel-manager\\autocad-parcel\\bin\\Debug\\net10.0-windows"
     }
   }
 }

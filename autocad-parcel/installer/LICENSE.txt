@@ -1,0 +1,54 @@
+LAND PARCEL MANAGER
+SOFTWARE LICENSE AGREEMENT
+
+Version 1.0.5
+
+Copyright © 2026 TopMap Solutions. All rights reserved.
+
+1. LICENSE GRANT
+
+TopMap Solutions grants the authorized organization a limited, non-exclusive, non-transferable license to use TM Buddy for its internal land, parcel, surveying, GIS, and related operational activities.
+
+2. OWNERSHIP
+
+TM Buddy, including its software, source code, interface, documentation, and related components, remains the property of TopMap Solutions unless otherwise agreed in writing.
+
+This license does not transfer ownership of the software to the organization.
+
+3. AUTHORIZED USE
+
+The organization may install and use the software on computers authorized for its operations.
+
+The organization may not sell, sublicense, redistribute, or provide the software to another organization without written authorization from TopMap.
+
+4. MODIFICATION AND REVERSE ENGINEERING
+
+The organization may not modify, decompile, reverse engineer, or attempt to extract the source code of the software except where such activity is expressly permitted by applicable law.
+
+5. DATA
+
+Data created, imported, processed, or stored by the organization remains the property and responsibility of the organization, subject to any separate agreement between the organization and TopMap.
+
+6. SERVER AND SERVICES
+
+Where TM Buddy connects to a TopMap Solutions or organization-managed server, access to that server and its associated services may be subject to separate terms, credentials, configuration, or service agreements.
+
+7. SUPPORT AND UPDATES
+
+Software support, maintenance, updates, custom development, and server services are subject to the applicable agreement between TopMap Solutions and the organization.
+
+8. DISCLAIMER
+
+The software is provided subject to the terms of the applicable agreement. To the extent permitted by law, TopMap Solutions is not responsible for losses resulting from improper use, unauthorized modification, incorrect configuration, or inaccurate data supplied or processed by the user.
+
+9. TERMINATION
+
+The license may be terminated if the organization materially violates this agreement or any separate software licensing agreement with TopMap.
+
+Upon termination, the organization must stop using the software and remove unauthorized copies.
+
+10. ACCEPTANCE
+
+By installing or using TM Buddy, the authorized user acknowledges that they have read and accepted the terms of this Software License Agreement.
+
+For licensing, procurement, warranty, liability, and other legally binding terms, the signed agreement between TopMap Solutions and the organization takes precedence over this document where applicable.

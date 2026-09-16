@@ -103,9 +103,6 @@ namespace ParcelManger.Commands
 
             Editor ed = doc.Editor;
 
-            // --------------------------------------------------------
-            // Point
-            // --------------------------------------------------------
 
             PromptPointResult pointResult =
                 ed.GetPoint(
@@ -113,10 +110,6 @@ namespace ParcelManger.Commands
 
             if (pointResult.Status != PromptStatus.OK)
                 return;
-
-            // --------------------------------------------------------
-            // Owner
-            // --------------------------------------------------------
 
             string? owner =
                 GetString(
@@ -126,10 +119,6 @@ namespace ParcelManger.Commands
             if (owner == null)
                 return;
 
-            // --------------------------------------------------------
-            // PIN
-            // --------------------------------------------------------
-
             string? pin =
                 GetString(
                     ed,
@@ -138,9 +127,6 @@ namespace ParcelManger.Commands
             if (pin == null)
                 return;
 
-            // --------------------------------------------------------
-            // Lot
-            // --------------------------------------------------------
 
             string? lot =
                 GetString(
@@ -149,10 +135,6 @@ namespace ParcelManger.Commands
 
             if (lot == null)
                 return;
-
-            // --------------------------------------------------------
-            // Area
-            // --------------------------------------------------------
 
             string? areaInput =
                 GetString(
@@ -176,10 +158,6 @@ namespace ParcelManger.Commands
 
                 return;
             }
-
-            // --------------------------------------------------------
-            // Land class
-            // --------------------------------------------------------
 
             string? landClass =
                 GetString(

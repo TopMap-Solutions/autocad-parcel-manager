@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<ApplicationPackage
+    SchemaVersion="1.0.5"
+    AutodeskProduct="AutoCAD"
+    Name="TM Parcel"
+    Description="TM Parcel Plugin"
+    AppVersion="1.0.5"
+    ProductType="Application">
+
+    <CompanyDetails
+        Name="TopMap Solutions" />
+
+    <Components>
+
+        <ComponentEntry
+            AppName="TMParcel"
+            ModuleName="./Contents/Windows/TMParcel.dll"
+            LoadOnAutoCADStartup="True">
+
+            <RuntimeRequirements
+                OS="Win64"
+                Platform="AutoCAD*"
+                SeriesMin="R25.0" />
+
+            <Commands GroupName="TMPARCEL_COMMANDS">
+                <Command
+                    Local="TMBUDDY"
+                    Global="TMBUDDY" />
+            </Commands>
+
+        </ComponentEntry>
+
+    </Components>
+
+</ApplicationPackage>

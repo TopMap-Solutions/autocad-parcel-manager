@@ -15,8 +15,8 @@
 
             return
                 $"{Owner}\\P" +
-                $"{Pin}\\P" +
-                $"{Lot}\\P" +
+                $"PIN: {Pin}\\P" +
+                $"LOT-{Lot}\\P" +
                 $"A={formattedArea} SQ.M.\\P" +
                 $"CLASS: {LandClass}";
         }
