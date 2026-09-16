@@ -19,7 +19,7 @@ This license does not transfer ownership of the software to the organization.
 
 The organization may install and use the software on computers authorized for its operations.
 
-The organization may not sell, sublicense, redistribute, or provide the software to another organization without written authorization from TopMap.
+The organization may not sell, sublicense, redistribute, or provide the software to another organization without written authorization from TopMap Solutions.
 
 4. MODIFICATION AND REVERSE ENGINEERING
 
